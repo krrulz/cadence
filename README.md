@@ -111,8 +111,11 @@ The Cloudflare API token must never reach the browser. Anything prefixed `VITE_`
 
 ### Setup
 
-1. **Cloudflare account ID**: [dash.cloudflare.com](https://dash.cloudflare.com/) → any domain → the Account ID is in the right sidebar. (Or Workers & Pages → Overview.)
-2. **API token**: Cloudflare dashboard → My Profile → API Tokens → Create Token → use the **Workers AI** template (or a custom token with `Account → Workers AI → Read`). Copy it — it's shown once.
+You do **not** need to own a domain — a free Cloudflare account with no domains attached is enough for Workers AI.
+
+1. **Sign up / sign in** at [dash.cloudflare.com](https://dash.cloudflare.com/). No domain and no card required; skip any "add a site" prompt.
+2. **Account ID**: left sidebar → **Compute (Workers)** / **Workers & Pages** → the Account ID is shown in the right sidebar. If you can't see it, read it out of the dashboard URL — `dash.cloudflare.com/<account-id>/...` — it's the long hex string.
+3. **API token**: top-right avatar → **My Profile** → **API Tokens** → **Create Token** → use the **Workers AI** template if offered, otherwise **Create Custom Token** with permission `Account → Workers AI → Read`. Copy it immediately — it's shown once and cannot be retrieved later.
 3. **Set the variables** in `.env.local` for local dev and in Vercel → Settings → Environment Variables for production:
    ```
    CF_ACCOUNT_ID=<your account id>
