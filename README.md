@@ -89,11 +89,13 @@ npm run dev
 
 ## 5. Deploying to Vercel
 
-The repo is already connected to Vercel. In the Vercel project settings:
+1. **Import the repo**: [vercel.com/new](https://vercel.com/new) → import `krrulz/cadence` → Vercel auto-detects the Vite preset (build command `npm run build`, output directory `dist`). Leave those as detected.
+2. **Settings → Environment Variables**: add the six `VITE_FIREBASE_*` variables (with real values) for Production (and Preview, if used). If you want the AI email feature, add the server-side variables from §6 here too.
+3. Push to `main` — Vercel builds and deploys automatically from then on.
 
-1. **Settings → Environment Variables**: add the same six `VITE_FIREBASE_*` variables (with real values) for the Production (and Preview, if used) environments. If you're using the AI email feature, add the server-side variables from §6 here too.
-2. **Build settings**: framework preset "Vite", build command `npm run build`, output directory `dist` (Vercel usually detects this automatically).
-3. Push to your connected branch — Vercel builds and deploys automatically.
+The serverless function in `api/` needs no extra configuration: Vercel picks up that directory by convention.
+
+**Add your Vercel domain to Firebase**: Firebase console → Authentication → Settings → Authorized domains → add the `*.vercel.app` domain Vercel gives you (and any custom domain). Sign-in fails on an unauthorized domain.
 
 Firestore rules are deployed separately via the Firebase CLI/console (step 1.5), not via Vercel.
 
@@ -158,7 +160,14 @@ Enforced by [`firestore.rules`](./firestore.rules) using a `get()` lookup on `us
 
 ## Design
 
-The color system takes inspiration from both companies' brand colors without reproducing any logos or trademarked assets: a BNP Paribas Fortis–style green (`#00965E`, `brand` in `tailwind.config.js`) as the primary action color (buttons, active nav state, key stats, links), and a professional violet in Expleo's accent family (`#6B3FA0`, `accent`) used sparingly for section headers and badges (achievement tags, peer-recognition tags). Backgrounds stay neutral white/grey/near-black so the two saturated brand colors don't compete with each other.
+Two brand colors, defined in `tailwind.config.js`:
+
+- **`brand`** — green `#00965E`. The primary action color: buttons, active nav state, key stats, links.
+- **`accent`** — violet `#6B3FA0`. A secondary voice used sparingly: section headers and badges (achievement tags, peer-recognition tags).
+
+Backgrounds stay neutral (white / light grey / near-black) so two saturated colors don't compete for attention. The login page pairs them over a dark waveform backdrop (`src/assets/cadence-login-background.svg`) with slow-drifting ambient glows; interior pages carry a very faint (7%) green/purple radial wash so the app feels of a piece with it.
+
+The palette originally took inspiration from the BNP Paribas Fortis green and an Expleo-family violet. No logos or trademarked assets are reproduced — only the color values informed the choice.
 
 ## Notes
 
