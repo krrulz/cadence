@@ -1,0 +1,98 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isOwner(employeeId) {
+      return isSignedIn() && request.auth.uid == employeeId;
+    }
+
+    // --- users --------------------------------------------------------
+    // Any authenticated user may read their own profile; admin may read/write all.
+    // Employees may update their own doc but never their role, leave entitlements,
+    // or the opening leave-taken figures (either would let them inflate their balance).
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (
+        isOwner(uid) &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.leaveEntitlements == resource.data.leaveEntitlements &&
+        request.resource.data.get('leaveOpeningTaken', {}) == resource.data.get('leaveOpeningTaken', {})
+      );
+      allow delete: if isAdmin();
+    }
+
+    // --- performance ------------------------------------------------------
+    // Reviews are admin-authored only. Achievements are self-logged wins:
+    // employees may create their own (entryType == 'Achievement') but never
+    // edit or delete any performance doc once created.
+    match /performance/{id} {
+      allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
+      allow create: if isAdmin() || (
+        isOwner(request.resource.data.employeeId) &&
+        request.resource.data.entryType == 'Achievement'
+      );
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // --- recognitions -------------------------------------------------------
+    // Anyone (admin or employee) may recognize a teammate, but never themselves.
+    // Readable by the recipient, the giver, or admin. Only admin may edit/delete.
+    match /recognitions/{id} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.employeeId == request.auth.uid ||
+        resource.data.givenByUid == request.auth.uid
+      );
+      allow create: if isSignedIn() &&
+        request.auth.uid == request.resource.data.givenByUid &&
+        request.resource.data.employeeId != request.resource.data.givenByUid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // --- feedback -----------------------------------------------------------
+    // Admin-authored only: employees may read their own entries, never write.
+    match /feedback/{id} {
+      allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // --- grievances -----------------------------------------------------
+    // Employees may read their own and create new ones (forced to 'Open'), but
+    // only admin may change status/resolution fields or delete.
+    match /grievances/{id} {
+      allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
+      allow create: if isAdmin() || (
+        isOwner(request.resource.data.employeeId) &&
+        request.resource.data.status == 'Open'
+      );
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // --- leaves -----------------------------------------------------------
+    // Employees may read their own and create new requests (forced to 'Pending'),
+    // but only admin may approve/reject (update status/approvedBy) or delete.
+    match /leaves/{id} {
+      allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
+      allow create: if isAdmin() || (
+        isOwner(request.resource.data.employeeId) &&
+        request.resource.data.status == 'Pending'
+      );
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}

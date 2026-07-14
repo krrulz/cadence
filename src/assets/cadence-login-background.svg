@@ -1,0 +1,73 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="base" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#0B1523"/>
+    <stop offset="55%" stop-color="#101E33"/>
+    <stop offset="100%" stop-color="#1B1030"/>
+  </linearGradient>
+  <radialGradient id="glowGreen" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#00965E" stop-opacity="0.35"/>
+    <stop offset="100%" stop-color="#00965E" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="glowPurple" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#7A45B0" stop-opacity="0.30"/>
+    <stop offset="100%" stop-color="#7A45B0" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="centerCalm" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#0B1523" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#0B1523" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+
+<rect width="1920" height="1080" fill="url(#base)"/>
+
+<circle cx="180" cy="150" r="420" fill="url(#glowGreen)"/>
+<circle cx="1780" cy="900" r="480" fill="url(#glowPurple)"/>
+<circle cx="1750" cy="120" r="260" fill="url(#glowPurple)" opacity="0.6"/>
+<circle cx="150" cy="950" r="300" fill="url(#glowGreen)" opacity="0.6"/>
+
+<!-- cadence waveform lines, layered rhythm across the canvas -->
+<path d="M -50 260 C 200 200, 380 320, 560 260 S 920 200, 1100 260 S 1460 320, 1640 260 S 1970 200, 2050 260"
+      fill="none" stroke="#00965E" stroke-width="2" opacity="0.35"/>
+<path d="M -50 300 C 220 360, 400 240, 580 300 S 940 360, 1120 300 S 1480 240, 1660 300 S 1980 360, 2060 300"
+      fill="none" stroke="#00965E" stroke-width="1.5" opacity="0.22"/>
+
+<path d="M -50 810 C 200 750, 380 870, 560 810 S 920 750, 1100 810 S 1460 870, 1640 810 S 1970 750, 2050 810"
+      fill="none" stroke="#8B4FC7" stroke-width="2" opacity="0.35"/>
+<path d="M -50 850 C 220 910, 400 790, 580 850 S 940 910, 1120 850 S 1480 790, 1660 850 S 1980 910, 2060 850"
+      fill="none" stroke="#8B4FC7" stroke-width="1.5" opacity="0.22"/>
+
+<!-- beat / tick marks along a mid baseline, evenly spaced like a metronome -->
+<g opacity="0.5">
+  <rect x="60"  y="520" width="3" height="14" fill="#00965E"/>
+  <rect x="120" y="512" width="3" height="30" fill="#00965E"/>
+  <rect x="180" y="520" width="3" height="14" fill="#00965E"/>
+  <rect x="240" y="500" width="3" height="54" fill="#8B4FC7"/>
+  <rect x="300" y="520" width="3" height="14" fill="#00965E"/>
+  <rect x="360" y="512" width="3" height="30" fill="#00965E"/>
+  <rect x="420" y="520" width="3" height="14" fill="#00965E"/>
+
+  <rect x="1500" y="520" width="3" height="14" fill="#8B4FC7"/>
+  <rect x="1560" y="500" width="3" height="54" fill="#00965E"/>
+  <rect x="1620" y="520" width="3" height="14" fill="#8B4FC7"/>
+  <rect x="1680" y="512" width="3" height="30" fill="#8B4FC7"/>
+  <rect x="1740" y="520" width="3" height="14" fill="#8B4FC7"/>
+  <rect x="1800" y="500" width="3" height="54" fill="#00965E"/>
+  <rect x="1860" y="520" width="3" height="14" fill="#00965E"/>
+</g>
+
+<!-- soft pulse rings, top-left, echoing a heartbeat-monitor ping -->
+<g opacity="0.5">
+  <circle cx="230" cy="700" r="10" fill="none" stroke="#00965E" stroke-width="1.5"/>
+  <circle cx="230" cy="700" r="26" fill="none" stroke="#00965E" stroke-width="1" opacity="0.6"/>
+  <circle cx="230" cy="700" r="44" fill="none" stroke="#00965E" stroke-width="1" opacity="0.35"/>
+</g>
+<g opacity="0.5">
+  <circle cx="1700" cy="330" r="10" fill="none" stroke="#8B4FC7" stroke-width="1.5"/>
+  <circle cx="1700" cy="330" r="26" fill="none" stroke="#8B4FC7" stroke-width="1" opacity="0.6"/>
+  <circle cx="1700" cy="330" r="44" fill="none" stroke="#8B4FC7" stroke-width="1" opacity="0.35"/>
+</g>
+
+<!-- calm dimmed zone in the center so a login card reads clearly on top -->
+<ellipse cx="960" cy="540" rx="620" ry="520" fill="url(#centerCalm)"/>
+</svg>
