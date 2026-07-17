@@ -95,27 +95,44 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: `Workers AI request failed: ${detail}` })
     }
 
-    const text = payload.result?.response
-    if (!text) return res.status(502).json({ error: 'Workers AI returned an empty response.' })
-
-    // Models often wrap JSON in prose or code fences despite instructions.
-    // Fall back to using the raw text as the body rather than failing outright.
-    const match = /\{[\s\S]*\}/.exec(text)
-    if (match) {
-      try {
-        const parsed = JSON.parse(match[0])
-        if (parsed.body) {
-          return res.status(200).json({
-            subject: parsed.subject || `Catching up — ${employeeName}`,
-            body: parsed.body,
-          })
-        }
-      } catch {
-        // fall through to raw text
-      }
-    }
-    return res.status(200).json({ subject: `Catching up — ${employeeName}`, body: text.trim() })
+    const email = extractEmail(payload.result, employeeName)
+    if (!email) return res.status(502).json({ error: 'Workers AI returned an empty response.' })
+    return res.status(200).json(email)
   } catch (err) {
     return res.status(502).json({ error: `Workers AI request failed: ${err.message}` })
   }
+}
+
+// Workers AI's response shape varies: `result.response` is a plain string on
+// older models, but an already-parsed object when the model emits clean JSON,
+// and some models only populate the OpenAI-style `choices` array. Exported for
+// tests.
+export function extractEmail(result, employeeName) {
+  const fallbackSubject = `Catching up — ${employeeName}`
+  const raw = result?.response ?? result?.choices?.[0]?.message?.content
+
+  // Already-parsed object with the fields we asked for.
+  if (raw && typeof raw === 'object') {
+    if (typeof raw.body === 'string' && raw.body) {
+      return { subject: typeof raw.subject === 'string' && raw.subject ? raw.subject : fallbackSubject, body: raw.body }
+    }
+    return null
+  }
+
+  if (typeof raw !== 'string' || !raw.trim()) return null
+
+  // Models often wrap JSON in prose or code fences despite instructions.
+  // Fall back to using the raw text as the body rather than failing outright.
+  const match = /\{[\s\S]*\}/.exec(raw)
+  if (match) {
+    try {
+      const parsed = JSON.parse(match[0])
+      if (typeof parsed.body === 'string' && parsed.body) {
+        return { subject: typeof parsed.subject === 'string' && parsed.subject ? parsed.subject : fallbackSubject, body: parsed.body }
+      }
+    } catch {
+      // fall through to raw text
+    }
+  }
+  return { subject: fallbackSubject, body: raw.trim() }
 }
