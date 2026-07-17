@@ -9,3 +9,7 @@ dist
 # Firebase service account keys (used only locally with scripts/createUser.js)
 serviceAccountKey*.json
 *-firebase-adminsdk-*.json
+
+# Any env backup/copy variants — never commit credentials
+.env*
+!.env.example
