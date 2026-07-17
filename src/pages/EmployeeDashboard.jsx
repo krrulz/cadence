@@ -7,6 +7,7 @@ import Section from '../components/Section.jsx'
 import DataTable from '../components/DataTable.jsx'
 import PerformanceTimeline from '../components/PerformanceTimeline.jsx'
 import OneOnOnes from '../components/OneOnOnes.jsx'
+import Goals from '../components/Goals.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { getRecordsForEmployee, getRecordsByField, getAllUsers, addRecord } from '../lib/firestoreHelpers.js'
@@ -87,6 +88,8 @@ export default function EmployeeDashboard() {
             emptyText="No performance reviews or achievements logged yet."
           />
         </Section>
+
+        <Goals employeeId={user.uid} viewer={{ uid: user.uid, name: profile.name, role: 'employee' }} />
 
         <Section title="My Recognitions" onAdd={() => setModal('recognition')} addLabel="+ Give Recognition">
           <RecognitionsPanel received={records.recognitions} given={records.recognitionsGiven} />

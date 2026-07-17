@@ -163,6 +163,7 @@ Deleting another user's Auth account and cascading their data can only be done s
 - `recognitions/{id}` — `employeeId` (recipient), `recipientName, date, type, description, givenBy, givenByUid, source ('admin'|'peer'), sharedPublicly`
 - `feedback/{id}` — `employeeId, date, type ('1:1'|'Peer'|'360'|'Skip-level'), givenBy, summary, actionItems, followUpDate`
 - `leaves/{id}` — `employeeId, leaveType, dateFrom, dateTo, numDays, status ('Pending'|'Approved'|'Rejected'), approvedBy`
+- `goals/{id}` — `employeeId, objective, description, status ('Not Started'|'In Progress'|'At Risk'|'Completed'), dueDate, progress (0-100), keyResults [{ text, done }], ownerName, createdByUid, createdByRole, createdAt` — collaborative OKRs; both the employee and admin can edit and tick key results. Progress is derived from key results when present, else the manual `progress` value.
 - `bookmarks/{id}` — `title, url, category, description, createdAt` — admin-curated useful links shown to the whole team on the **Links** page
 - `oneOnOnes/{id}` — `employeeId, date, title, agenda, createdBy, createdAt`; with subcollections `notes/{id}` (`authorUid, authorName, text, createdAt`) and `actions/{id}` (`text, done, createdByUid, createdAt`)
 

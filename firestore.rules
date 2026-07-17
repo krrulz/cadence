@@ -95,6 +95,20 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // --- goals / OKRs -----------------------------------------------------
+    // Objectives with embedded key results. Collaborative: the employee and the
+    // admin may both create, edit (incl. ticking key results) and delete an
+    // employee's goals. The employee can't reassign a goal to someone else.
+    match /goals/{id} {
+      allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
+      allow create: if isAdmin() || isOwner(request.resource.data.employeeId);
+      allow update: if isAdmin() || (
+        isOwner(resource.data.employeeId) &&
+        request.resource.data.employeeId == resource.data.employeeId
+      );
+      allow delete: if isAdmin() || isOwner(resource.data.employeeId);
+    }
+
     // --- bookmarks --------------------------------------------------------
     // Admin-curated useful links, visible to the whole team. Any signed-in user
     // may read; only admin may add, edit or remove.

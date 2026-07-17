@@ -35,6 +35,8 @@ export const PEER_RECOGNITION_TYPES = ['Spot Award', 'Peer Shoutout', 'Great Tea
 
 export const GRIEVANCE_STATUSES = ['Open', 'In Progress', 'Resolved']
 
+export const GOAL_STATUSES = ['Not Started', 'In Progress', 'At Risk', 'Completed']
+
 export const LEAVE_STATUSES = ['Pending', 'Approved', 'Rejected']
 
 export const FEEDBACK_OVERDUE_DAYS = 90
