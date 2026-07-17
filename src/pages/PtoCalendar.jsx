@@ -2,7 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Layout from '../components/Layout.jsx'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { getAllRecords, getAllUsers, getRecordsForEmployee } from '../lib/firestoreHelpers.js'
+import {
+  getAllRecords,
+  getAllUsers,
+  getRecordsForEmployee,
+  addRecord,
+  deleteRecord,
+} from '../lib/firestoreHelpers.js'
+import { LabeledInput } from '../components/FormFields.jsx'
 import {
   WEEKDAY_LABELS,
   monthMatrix,
@@ -37,6 +44,7 @@ export default function PtoCalendar() {
   const { user, profile, isAdmin } = useAuth()
   const [loading, setLoading] = useState(true)
   const [leaves, setLeaves] = useState([])
+  const [holidays, setHolidays] = useState([])
   const [namesByUid, setNamesByUid] = useState({})
   const [includePending, setIncludePending] = useState(false)
 
@@ -46,13 +54,19 @@ export default function PtoCalendar() {
   const loadData = useCallback(async () => {
     setLoading(true)
     if (isAdmin) {
-      const [allLeaves, users] = await Promise.all([getAllRecords('leaves'), getAllUsers()])
+      const [allLeaves, users, hols] = await Promise.all([
+        getAllRecords('leaves'),
+        getAllUsers(),
+        getAllRecords('holidays'),
+      ])
       setLeaves(allLeaves)
       setNamesByUid(Object.fromEntries(users.map((u) => [u.id, u.name])))
+      setHolidays(hols)
     } else {
-      const own = await getRecordsForEmployee('leaves', user.uid)
+      const [own, hols] = await Promise.all([getRecordsForEmployee('leaves', user.uid), getAllRecords('holidays')])
       setLeaves(own)
       setNamesByUid({ [user.uid]: profile?.name || 'You' })
+      setHolidays(hols)
     }
     setLoading(false)
   }, [isAdmin, user.uid, profile?.name])
@@ -66,6 +80,7 @@ export default function PtoCalendar() {
     [leaves, includePending],
   )
   const byDate = useMemo(() => indexLeavesByDate(shown), [shown])
+  const holidayByDate = useMemo(() => Object.fromEntries(holidays.map((h) => [h.date, h.name])), [holidays])
   const weeks = useMemo(() => monthMatrix(view.year, view.month), [view])
 
   function step(delta) {
@@ -139,6 +154,7 @@ export default function PtoCalendar() {
                       iso={iso}
                       inMonth={inMonth}
                       dayLeaves={dayLeaves}
+                      holidayName={holidayByDate[iso]}
                       namesByUid={namesByUid}
                       isAdmin={isAdmin}
                     />
@@ -149,11 +165,79 @@ export default function PtoCalendar() {
           </div>
         )}
       </div>
+
+      {isAdmin && (
+        <HolidayManager holidays={holidays} onChanged={loadData} />
+      )}
     </Layout>
   )
 }
 
-function DayCell({ date, iso, inMonth, dayLeaves, namesByUid, isAdmin }) {
+function HolidayManager({ holidays, onChanged }) {
+  const [date, setDate] = useState('')
+  const [name, setName] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const sorted = useMemo(() => [...holidays].sort((a, b) => a.date.localeCompare(b.date)), [holidays])
+
+  async function addHoliday(e) {
+    e.preventDefault()
+    if (!date || !name.trim()) return
+    setSubmitting(true)
+    await addRecord('holidays', { date, name: name.trim() })
+    setDate('')
+    setName('')
+    setSubmitting(false)
+    onChanged()
+  }
+
+  async function removeHoliday(id) {
+    await deleteRecord('holidays', id)
+    onChanged()
+  }
+
+  return (
+    <div className="mt-6 card">
+      <h2 className="mb-1 font-semibold text-accent">Public holidays</h2>
+      <p className="mb-4 text-sm text-slate-500">
+        Holidays are highlighted on the calendar and excluded from leave-day counts.
+      </p>
+
+      <form onSubmit={addHoliday} className="mb-4 flex flex-wrap items-end gap-3">
+        <LabeledInput label="Date" type="date" required value={date} onChange={setDate} />
+        <div className="flex-1">
+          <LabeledInput label="Name" required value={name} onChange={setName} placeholder="e.g. National Day" />
+        </div>
+        <button type="submit" disabled={submitting} className="btn-primary">
+          {submitting ? 'Adding…' : 'Add holiday'}
+        </button>
+      </form>
+
+      {sorted.length === 0 ? (
+        <p className="text-sm text-slate-400">No holidays added yet.</p>
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {sorted.map((h) => (
+            <li key={h.id} className="flex items-center justify-between py-2 text-sm">
+              <span>
+                <span className="font-medium text-slate-700">{h.date}</span>
+                <span className="ml-3 text-slate-600">{h.name}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => removeHoliday(h.id)}
+                className="text-slate-400 hover:text-red-600 hover:underline"
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+function DayCell({ date, iso, inMonth, dayLeaves, holidayName, namesByUid, isAdmin }) {
   const MAX = 3
   const visible = dayLeaves.slice(0, MAX)
   const extra = dayLeaves.length - visible.length
@@ -161,7 +245,13 @@ function DayCell({ date, iso, inMonth, dayLeaves, namesByUid, isAdmin }) {
   return (
     <div
       className={`min-h-[92px] border-b border-r border-slate-100 p-1.5 ${
-        inMonth ? (isWeekend(date) ? 'bg-slate-50/60' : 'bg-white') : 'bg-slate-50/40 text-slate-300'
+        holidayName && inMonth
+          ? 'bg-amber-50'
+          : inMonth
+            ? isWeekend(date)
+              ? 'bg-slate-50/60'
+              : 'bg-white'
+            : 'bg-slate-50/40 text-slate-300'
       }`}
     >
       <div className="mb-1 flex items-center justify-between">
@@ -173,6 +263,11 @@ function DayCell({ date, iso, inMonth, dayLeaves, namesByUid, isAdmin }) {
           {date.getDate()}
         </span>
       </div>
+      {holidayName && inMonth && (
+        <div className="mb-1 truncate rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-800" title={holidayName}>
+          {holidayName}
+        </div>
+      )}
       <div className="space-y-1">
         {visible.map((leave) => {
           // Admin cares who's off; employee cares which leave type.

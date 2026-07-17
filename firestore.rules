@@ -132,6 +132,14 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // --- holidays ---------------------------------------------------------
+    // Company public-holiday calendar. Everyone reads it (leave-day maths and
+    // the calendar depend on it); only admin maintains it.
+    match /holidays/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // --- one-on-ones ------------------------------------------------------
     // A collaborative 1:1 between the admin and one employee. The parent doc
     // holds metadata + a shared agenda; notes and action items live in

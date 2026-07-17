@@ -18,6 +18,15 @@ export const DEFAULT_LEAVE_OPENING_TAKEN = {
   'Comp Off': 0,
 }
 
+// Unused leave carried over from the previous year, added to this year's usable
+// balance. Tracked separately so it can be reset independently at year start.
+export const DEFAULT_LEAVE_CARRY_OVER = {
+  'Casual Leave': 0,
+  'Sick Leave': 0,
+  'Earned Annual Leave': 0,
+  'Comp Off': 0,
+}
+
 export const GRIEVANCE_CATEGORIES = [
   'Workplace Conflict',
   'Compensation',

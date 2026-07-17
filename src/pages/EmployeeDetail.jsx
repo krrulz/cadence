@@ -604,6 +604,7 @@ function LeaveTab({ balance, records, onApprove, onReject, selectedIds, onToggle
                     ({v.takenBefore} before Cadence, {v.takenInApp} logged here)
                   </p>
                 )}
+                {v.carryOver > 0 && <p className="text-xs text-slate-400">+{v.carryOver} carried over</p>}
               </div>
             ))}
         </div>

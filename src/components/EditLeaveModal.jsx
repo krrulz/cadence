@@ -1,7 +1,12 @@
 import { useMemo, useState } from 'react'
 import Modal from './Modal.jsx'
 import { updateUserProfile } from '../lib/firestoreHelpers.js'
-import { LEAVE_TYPES, DEFAULT_LEAVE_ENTITLEMENTS, DEFAULT_LEAVE_OPENING_TAKEN } from '../lib/constants.js'
+import {
+  LEAVE_TYPES,
+  DEFAULT_LEAVE_ENTITLEMENTS,
+  DEFAULT_LEAVE_OPENING_TAKEN,
+  DEFAULT_LEAVE_CARRY_OVER,
+} from '../lib/constants.js'
 import { computeLeaveBalance } from '../lib/aggregate.js'
 
 export default function EditLeaveModal({ employee, leaveRecords, onClose, onSaved }) {
@@ -13,13 +18,21 @@ export default function EditLeaveModal({ employee, leaveRecords, onClose, onSave
     ...DEFAULT_LEAVE_OPENING_TAKEN,
     ...(employee.leaveOpeningTaken || {}),
   }))
+  const [carryOver, setCarryOver] = useState(() => ({
+    ...DEFAULT_LEAVE_CARRY_OVER,
+    ...(employee.leaveCarryOver || {}),
+  }))
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   // Live preview of the resulting balance, using the same math the app uses.
   const preview = useMemo(
-    () => computeLeaveBalance({ leaveEntitlements: entitlements, leaveOpeningTaken: openingTaken }, leaveRecords),
-    [entitlements, openingTaken, leaveRecords],
+    () =>
+      computeLeaveBalance(
+        { leaveEntitlements: entitlements, leaveOpeningTaken: openingTaken, leaveCarryOver: carryOver },
+        leaveRecords,
+      ),
+    [entitlements, openingTaken, carryOver, leaveRecords],
   )
 
   async function handleSubmit(e) {
@@ -30,6 +43,7 @@ export default function EditLeaveModal({ employee, leaveRecords, onClose, onSave
       await updateUserProfile(employee.id, {
         leaveEntitlements: entitlements,
         leaveOpeningTaken: openingTaken,
+        leaveCarryOver: carryOver,
       })
       onSaved?.()
       onClose()
@@ -46,7 +60,8 @@ export default function EditLeaveModal({ employee, leaveRecords, onClose, onSave
         <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
           <strong>Entitlement</strong> is the full yearly allowance. <strong>Already taken</strong> is leave used before
           this was tracked in Cadence — set it when adopting mid-year, then reset it to 0 at the start of a new year.
-          Leave approved inside Cadence is counted automatically and isn't editable here.
+          <strong> Carry-over</strong> is unused leave brought in from last year. Leave approved inside Cadence is
+          counted automatically and isn't editable here.
         </p>
 
         <div className="overflow-x-auto">
@@ -55,6 +70,7 @@ export default function EditLeaveModal({ employee, leaveRecords, onClose, onSave
               <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
                 <th className="py-2 pr-4">Leave type</th>
                 <th className="py-2 pr-4">Entitlement</th>
+                <th className="py-2 pr-4">Carry-over</th>
                 <th className="py-2 pr-4">Already taken</th>
                 <th className="py-2 pr-4">Logged in Cadence</th>
                 <th className="py-2 pr-4">Balance</th>
@@ -75,6 +91,17 @@ export default function EditLeaveModal({ employee, leaveRecords, onClose, onSave
                         onChange={(e) => setEntitlements((s) => ({ ...s, [type]: Number(e.target.value) }))}
                         className="input w-24"
                         aria-label={`${type} entitlement`}
+                      />
+                    </td>
+                    <td className="py-2 pr-4">
+                      <input
+                        type="number"
+                        min={0}
+                        required
+                        value={carryOver[type] ?? 0}
+                        onChange={(e) => setCarryOver((s) => ({ ...s, [type]: Number(e.target.value) }))}
+                        className="input w-24"
+                        aria-label={`${type} carry-over`}
                       />
                     </td>
                     <td className="py-2 pr-4">

@@ -11,20 +11,13 @@ import Goals from '../components/Goals.jsx'
 import GrievanceList from '../components/GrievanceList.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { getRecordsForEmployee, getRecordsByField, getAllUsers, addRecord } from '../lib/firestoreHelpers.js'
+import { getRecordsForEmployee, getRecordsByField, getAllUsers, getAllRecords, addRecord } from '../lib/firestoreHelpers.js'
 import { computeLeaveBalance, sortByDateDesc } from '../lib/aggregate.js'
+import { computeLeaveDays, holidaySet } from '../lib/leave.js'
 import { GRIEVANCE_CATEGORIES, LEAVE_TYPES, PEER_RECOGNITION_TYPES } from '../lib/constants.js'
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
-}
-
-function daysBetweenInclusive(from, to) {
-  if (!from || !to) return 0
-  const a = new Date(from)
-  const b = new Date(to)
-  const diff = Math.round((b - a) / (1000 * 60 * 60 * 24)) + 1
-  return diff > 0 ? diff : 0
 }
 
 export default function EmployeeDashboard() {
@@ -37,20 +30,22 @@ export default function EmployeeDashboard() {
     recognitionsGiven: [],
     feedback: [],
     leaves: [],
+    holidays: [],
   })
   const [modal, setModal] = useState(null) // 'grievance' | 'leave' | 'achievement' | 'recognition'
 
   const loadData = useCallback(async () => {
     setLoading(true)
-    const [performance, grievances, recognitions, recognitionsGiven, feedback, leaves] = await Promise.all([
+    const [performance, grievances, recognitions, recognitionsGiven, feedback, leaves, holidays] = await Promise.all([
       getRecordsForEmployee('performance', user.uid),
       getRecordsForEmployee('grievances', user.uid),
       getRecordsForEmployee('recognitions', user.uid),
       getRecordsByField('recognitions', 'givenByUid', user.uid),
       getRecordsForEmployee('feedback', user.uid),
       getRecordsForEmployee('leaves', user.uid),
+      getAllRecords('holidays'),
     ])
-    setRecords({ performance, grievances, recognitions, recognitionsGiven, feedback, leaves })
+    setRecords({ performance, grievances, recognitions, recognitionsGiven, feedback, leaves, holidays })
     setLoading(false)
   }, [user.uid])
 
@@ -134,6 +129,7 @@ export default function EmployeeDashboard() {
                   <p className="text-xs text-slate-400">
                     {v.taken} taken / {v.entitlement} entitled
                   </p>
+                  {v.carryOver > 0 && <p className="text-xs text-slate-400">+{v.carryOver} carried over</p>}
                 </div>
               ))}
           </div>
@@ -181,7 +177,14 @@ export default function EmployeeDashboard() {
       {modal === 'grievance' && (
         <GrievanceForm employeeId={user.uid} onClose={() => setModal(null)} onSaved={loadData} />
       )}
-      {modal === 'leave' && <LeaveForm employeeId={user.uid} onClose={() => setModal(null)} onSaved={loadData} />}
+      {modal === 'leave' && (
+        <LeaveForm
+          employeeId={user.uid}
+          holidays={records.holidays}
+          onClose={() => setModal(null)}
+          onSaved={loadData}
+        />
+      )}
       {modal === 'achievement' && (
         <AchievementForm employeeId={user.uid} onClose={() => setModal(null)} onSaved={loadData} />
       )}
@@ -380,13 +383,21 @@ function GrievanceForm({ employeeId, onClose, onSaved }) {
   )
 }
 
-function LeaveForm({ employeeId, onClose, onSaved }) {
+function LeaveForm({ employeeId, holidays = [], onClose, onSaved }) {
   const [leaveType, setLeaveType] = useState(LEAVE_TYPES[0])
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [halfDay, setHalfDay] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  const numDays = daysBetweenInclusive(dateFrom, dateTo)
+  const holidays_ = useMemo(() => holidaySet(holidays), [holidays])
+  const singleDay = dateFrom && dateFrom === dateTo
+  // Half day only makes sense for a single-day request.
+  const effectiveHalfDay = halfDay && singleDay
+  const numDays = useMemo(
+    () => computeLeaveDays({ dateFrom, dateTo, halfDay: effectiveHalfDay }, holidays_),
+    [dateFrom, dateTo, effectiveHalfDay, holidays_],
+  )
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -397,6 +408,7 @@ function LeaveForm({ employeeId, onClose, onSaved }) {
       dateFrom,
       dateTo,
       numDays,
+      halfDay: effectiveHalfDay,
       status: 'Pending',
     })
     setSubmitting(false)
@@ -421,8 +433,20 @@ function LeaveForm({ employeeId, onClose, onSaved }) {
           <LabeledInput label="From" type="date" required value={dateFrom} onChange={setDateFrom} />
           <LabeledInput label="To" type="date" required value={dateTo} onChange={setDateTo} />
         </div>
+        {singleDay && (
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-brand"
+              checked={halfDay}
+              onChange={(e) => setHalfDay(e.target.checked)}
+            />
+            <span className="text-slate-700">Half day</span>
+          </label>
+        )}
         <p className="text-sm text-slate-500">
-          Total days: <span className="font-medium text-slate-700">{numDays}</span>
+          Working days (excl. weekends &amp; holidays):{' '}
+          <span className="font-medium text-slate-700">{numDays}</span>
         </p>
         <FormActions submitting={submitting || numDays === 0} onCancel={onClose} submitLabel="Submit" />
       </form>

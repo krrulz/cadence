@@ -20,15 +20,18 @@ export function latestByDate(records, dateField = 'date') {
 export function computeLeaveBalance(user, leaveRecords) {
   const entitlements = user.leaveEntitlements || {}
   const openingTaken = user.leaveOpeningTaken || {}
+  const carryOverMap = user.leaveCarryOver || {}
   const byType = {}
   for (const type of LEAVE_TYPES) {
     const entitlement = entitlements[type] ?? 0
+    const carryOver = Number(carryOverMap[type]) || 0
     const takenBefore = Number(openingTaken[type]) || 0
     const takenInApp = leaveRecords
       .filter((l) => l.leaveType === type && l.status === 'Approved')
       .reduce((sum, l) => sum + (Number(l.numDays) || 0), 0)
     const taken = takenBefore + takenInApp
-    byType[type] = { entitlement, taken, takenBefore, takenInApp, balance: entitlement - taken }
+    // Carry-over from last year adds to this year's usable balance.
+    byType[type] = { entitlement, carryOver, taken, takenBefore, takenInApp, balance: entitlement + carryOver - taken }
   }
   const total = Object.values(byType).reduce((sum, t) => sum + t.balance, 0)
   return { byType, total }
