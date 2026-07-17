@@ -14,11 +14,12 @@ import EditLeaveModal from '../components/EditLeaveModal.jsx'
 import OneOnOnes from '../components/OneOnOnes.jsx'
 import Goals from '../components/Goals.jsx'
 import GrievanceList from '../components/GrievanceList.jsx'
+import Avatar from '../components/Avatar.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { getUserDoc, getRecordsForEmployee, addRecord, updateRecord } from '../lib/firestoreHelpers.js'
 import { sendAlert } from '../lib/notify.js'
-import { computeLeaveBalance, sortByDateDesc } from '../lib/aggregate.js'
+import { computeLeaveBalance, sortByDateDesc, latestByDate, isReview } from '../lib/aggregate.js'
 import { GRIEVANCE_STATUSES, GRIEVANCE_PRIORITIES, FEEDBACK_TYPES, RECOGNITION_TYPES } from '../lib/constants.js'
 import {
   performanceSummaryLine,
@@ -120,15 +121,12 @@ export default function EmployeeDetail() {
         ← Back to roster
       </button>
 
-      <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900">{employee.name}</h1>
-          <p className="text-sm text-slate-500">
-            {employee.department} · Joined {employee.dateOfJoining} · Manager {employee.managerName || '—'}
-          </p>
-        </div>
-        <AdminEmployeeActions employee={employee} onDeleted={() => navigate('/')} />
-      </div>
+      <ProfileHeader
+        employee={employee}
+        records={records}
+        leaveBalance={leaveBalance}
+        onDeleted={() => navigate('/')}
+      />
 
       <div className="mt-4 flex gap-1 overflow-x-auto border-b border-slate-200">
         {TABS.map((t) => (
@@ -282,6 +280,47 @@ export default function EmployeeDetail() {
         />
       )}
     </Layout>
+  )
+}
+
+// --- Profile header ----------------------------------------------------
+
+function ProfileHeader({ employee, records, leaveBalance, onDeleted }) {
+  const reviews = records.performance.filter(isReview)
+  const latestReview = reviews.length ? latestByDate(reviews, 'date') : null
+  const openGrievances = records.grievances.filter((g) => g.status !== 'Resolved').length
+
+  const chips = [
+    { label: 'Latest rating', value: latestReview ? `${latestReview.rating}/5` : '—' },
+    { label: 'Open grievances', value: openGrievances },
+    { label: 'Leave balance', value: leaveBalance ? leaveBalance.total : '—' },
+  ]
+
+  return (
+    <div className="mt-2 card">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-4">
+          <Avatar name={employee.name} colorKey={employee.id || employee.name} size="lg" />
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold text-slate-900">{employee.name}</h1>
+            <p className="truncate text-sm text-slate-500">{employee.email}</p>
+            <p className="text-sm text-slate-500">
+              {employee.department} · Joined {employee.dateOfJoining} · Manager {employee.managerName || '—'}
+            </p>
+          </div>
+        </div>
+        <AdminEmployeeActions employee={employee} onDeleted={onDeleted} />
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-3">
+        {chips.map((c) => (
+          <div key={c.label} className="rounded-lg bg-slate-50 px-3 py-2 text-center">
+            <p className="text-lg font-semibold text-slate-800">{c.value}</p>
+            <p className="text-xs text-slate-500">{c.label}</p>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 

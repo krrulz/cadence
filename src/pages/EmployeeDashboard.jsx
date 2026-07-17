@@ -12,7 +12,8 @@ import GrievanceList from '../components/GrievanceList.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { getRecordsForEmployee, getRecordsByField, getAllUsers, getAllRecords, addRecord } from '../lib/firestoreHelpers.js'
-import { computeLeaveBalance, sortByDateDesc } from '../lib/aggregate.js'
+import { computeLeaveBalance, sortByDateDesc, latestByDate, isReview } from '../lib/aggregate.js'
+import Avatar from '../components/Avatar.jsx'
 import { computeLeaveDays, holidaySet } from '../lib/leave.js'
 import { sendAlert, getAdminEmails } from '../lib/notify.js'
 import { GRIEVANCE_CATEGORIES, LEAVE_TYPES, PEER_RECOGNITION_TYPES } from '../lib/constants.js'
@@ -69,10 +70,35 @@ export default function EmployeeDashboard() {
 
   return (
     <Layout>
-      <h1 className="text-xl font-semibold text-slate-900">My Dashboard</h1>
-      <p className="text-sm text-slate-500">
-        {profile.department} · Joined {profile.dateOfJoining} · Manager {profile.managerName || '—'}
-      </p>
+      <div className="card">
+        <div className="flex items-center gap-4">
+          <Avatar name={profile.name} colorKey={user.uid} size="lg" />
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold text-slate-900">{profile.name}</h1>
+            <p className="text-sm text-slate-500">
+              {profile.department} · Joined {profile.dateOfJoining} · Manager {profile.managerName || '—'}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          {[
+            {
+              label: 'Latest rating',
+              value: (() => {
+                const reviews = records.performance.filter(isReview)
+                return reviews.length ? `${latestByDate(reviews, 'date').rating}/5` : '—'
+              })(),
+            },
+            { label: 'Open grievances', value: records.grievances.filter((g) => g.status !== 'Resolved').length },
+            { label: 'Leave balance', value: leaveBalance ? leaveBalance.total : '—' },
+          ].map((c) => (
+            <div key={c.label} className="rounded-lg bg-slate-50 px-3 py-2 text-center">
+              <p className="text-lg font-semibold text-slate-800">{c.value}</p>
+              <p className="text-xs text-slate-500">{c.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="mt-6 space-y-6">
         <Section

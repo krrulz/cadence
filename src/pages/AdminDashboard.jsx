@@ -6,6 +6,7 @@ import StatusBadge from '../components/StatusBadge.jsx'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import AddEmployeeModal from '../components/AddEmployeeModal.jsx'
 import ReportModal from '../components/ReportModal.jsx'
+import Avatar from '../components/Avatar.jsx'
 import { getAllUsers, getAllRecords } from '../lib/firestoreHelpers.js'
 import { buildEmployeeSummary } from '../lib/aggregate.js'
 
@@ -171,7 +172,12 @@ export default function AdminDashboard() {
                       aria-label={`Select ${s.user.name}`}
                     />
                   </td>
-                  <td className="py-2 pr-4 font-medium text-slate-800">{s.user.name}</td>
+                  <td className="py-2 pr-4 font-medium text-slate-800">
+                    <div className="flex items-center gap-2">
+                      <Avatar name={s.user.name} colorKey={s.user.id} size="sm" />
+                      <span>{s.user.name}</span>
+                    </div>
+                  </td>
                   <td className="py-2 pr-4 text-slate-600">{s.user.department}</td>
                   <td className="py-2 pr-4 text-slate-600">
                     {s.latestPerformance ? s.latestPerformance.rating : '—'}
