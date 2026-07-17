@@ -175,7 +175,13 @@ Leave balance per type = `leaveEntitlements[type] − leaveOpeningTaken[type] �
 
 - **Performance & Achievements** — admin logs formal reviews (rating, reviewer, comments, goals); employees can log their own achievements (title, description, no rating) on the same timeline, visually tagged apart from reviews. Achievements never count toward the "Low Performance" / "No Data" attention flags — those only look at admin-authored reviews.
 - **Recognitions** — admin can recognize any employee. Any employee can also give a peer a "Spot Award", "Peer Shoutout", or "Great Teamwork" recognition from their own dashboard (pick a teammate, can't recognize yourself). Employees see both what they've received and what they've given.
-- **Grievances & leave** — unchanged from the original spec: employees raise/request, admin approves/resolves.
+- **Grievances** — employees raise (start `Open`); admin sets priority, assignee and status. A target resolution date is derived from priority and shown as an SLA badge (On Track / Due Soon / Overdue). Both sides can post to a per-grievance comment thread.
+- **Goals / OKRs** — collaborative objectives with key results and a progress bar, editable by both the employee and admin (My Dashboard / the Goals tab on the employee detail page).
+- **1:1 meetings** — shared agenda, author-tagged notes and checkable action items per meeting.
+- **PTO calendar** — month grid of the team's approved (and optionally pending) leave, colour-coded per person.
+- **Analytics** (admin) — team-wide charts at `/analytics`: grievance-status donut, review-rating distribution, headcount by department, recognitions over the last 6 months, and leave taken vs entitlement. Dependency-free inline SVG/CSS charts.
+- **Useful Links** — admin-curated bookmarks shown to the whole team at `/links`.
+- **Leave** — employees request (start `Pending`), admin approves/rejects; balances computed client-side.
 
 ## Roles & access
 
