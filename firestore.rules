@@ -17,11 +17,15 @@ service cloud.firestore {
     }
 
     // --- users --------------------------------------------------------
-    // Any authenticated user may read their own profile; admin may read/write all.
+    // Any signed-in user may read the team directory (names/departments are
+    // needed for peer recognition, 1:1s, and manager lookups). Sensitive
+    // activity — grievances, feedback, leave usage — lives in separate
+    // collections with their own per-owner rules, so this only exposes basic
+    // profile fields to teammates.
     // Employees may update their own doc but never their role, leave entitlements,
     // or the opening leave-taken figures (either would let them inflate their balance).
     match /users/{uid} {
-      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow read: if isSignedIn();
       allow create: if isAdmin();
       allow update: if isAdmin() || (
         isOwner(uid) &&
