@@ -4,6 +4,7 @@ import Login from './pages/Login.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
 import EmployeeDetail from './pages/EmployeeDetail.jsx'
 import EmployeeDashboard from './pages/EmployeeDashboard.jsx'
+import PtoCalendar from './pages/PtoCalendar.jsx'
 
 export default function App() {
   return (
@@ -30,6 +31,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <EmployeeDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/calendar"
+        element={
+          <ProtectedRoute>
+            <PtoCalendar />
           </ProtectedRoute>
         }
       />
