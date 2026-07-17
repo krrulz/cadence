@@ -5,6 +5,7 @@ const NAV = [
   { to: '/', label: 'Dashboard', adminOnly: true, end: true },
   { to: '/me', label: 'My Dashboard', employeeOnly: true, end: true },
   { to: '/calendar', label: 'Calendar' },
+  { to: '/links', label: 'Links' },
 ]
 
 export default function Layout({ children }) {

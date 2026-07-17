@@ -163,6 +163,8 @@ Deleting another user's Auth account and cascading their data can only be done s
 - `recognitions/{id}` — `employeeId` (recipient), `recipientName, date, type, description, givenBy, givenByUid, source ('admin'|'peer'), sharedPublicly`
 - `feedback/{id}` — `employeeId, date, type ('1:1'|'Peer'|'360'|'Skip-level'), givenBy, summary, actionItems, followUpDate`
 - `leaves/{id}` — `employeeId, leaveType, dateFrom, dateTo, numDays, status ('Pending'|'Approved'|'Rejected'), approvedBy`
+- `bookmarks/{id}` — `title, url, category, description, createdAt` — admin-curated useful links shown to the whole team on the **Links** page
+- `oneOnOnes/{id}` — `employeeId, date, title, agenda, createdBy, createdAt`; with subcollections `notes/{id}` (`authorUid, authorName, text, createdAt`) and `actions/{id}` (`text, done, createdByUid, createdAt`)
 
 Leave balance per type = `leaveEntitlements[type] − leaveOpeningTaken[type] − sum(numDays of Approved leaves of that type)`. Computed client-side, not stored.
 

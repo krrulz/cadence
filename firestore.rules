@@ -95,6 +95,14 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // --- bookmarks --------------------------------------------------------
+    // Admin-curated useful links, visible to the whole team. Any signed-in user
+    // may read; only admin may add, edit or remove.
+    match /bookmarks/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // --- one-on-ones ------------------------------------------------------
     // A collaborative 1:1 between the admin and one employee. The parent doc
     // holds metadata + a shared agenda; notes and action items live in
