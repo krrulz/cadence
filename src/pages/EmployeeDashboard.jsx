@@ -8,6 +8,7 @@ import DataTable from '../components/DataTable.jsx'
 import PerformanceTimeline from '../components/PerformanceTimeline.jsx'
 import OneOnOnes from '../components/OneOnOnes.jsx'
 import Goals from '../components/Goals.jsx'
+import GrievanceList from '../components/GrievanceList.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { getRecordsForEmployee, getRecordsByField, getAllUsers, addRecord } from '../lib/firestoreHelpers.js'
@@ -117,39 +118,10 @@ export default function EmployeeDashboard() {
         />
 
         <Section title="My Grievances" onAdd={() => setModal('grievance')} addLabel="+ Raise Grievance">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
-                  <th className="py-2 pr-4">Date Raised</th>
-                  <th className="py-2 pr-4">Category</th>
-                  <th className="py-2 pr-4">Description</th>
-                  <th className="py-2 pr-4">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortByDateDesc(records.grievances, 'dateRaised').map((r) => (
-                  <tr key={r.id} className="border-b border-slate-100">
-                    <td className="py-2 pr-4">{r.dateRaised}</td>
-                    <td className="py-2 pr-4">{r.category}</td>
-                    <td className="max-w-xs truncate py-2 pr-4" title={r.description}>
-                      {r.description}
-                    </td>
-                    <td className="py-2 pr-4">
-                      <StatusBadge label={r.status} />
-                    </td>
-                  </tr>
-                ))}
-                {records.grievances.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="py-6 text-center text-slate-400">
-                      No grievances raised.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <GrievanceList
+            grievances={records.grievances}
+            viewer={{ uid: user.uid, name: profile.name, role: 'employee' }}
+          />
         </Section>
 
         <Section title="Leave Balance">

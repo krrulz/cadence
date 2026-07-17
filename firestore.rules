@@ -71,7 +71,7 @@ service cloud.firestore {
 
     // --- grievances -----------------------------------------------------
     // Employees may read their own and create new ones (forced to 'Open'), but
-    // only admin may change status/resolution fields or delete.
+    // only admin may change status/resolution/priority/assignee/SLA or delete.
     match /grievances/{id} {
       allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
       allow create: if isAdmin() || (
@@ -80,6 +80,21 @@ service cloud.firestore {
       );
       allow update: if isAdmin();
       allow delete: if isAdmin();
+
+      // Comment thread on a grievance. The employee it concerns and the admin
+      // may both read and post; each comment carries its author, and only the
+      // author (or admin) may edit or delete it.
+      match /comments/{commentId} {
+        function isGrievanceParticipant() {
+          return isSignedIn() && (
+            isAdmin() ||
+            get(/databases/$(database)/documents/grievances/$(id)).data.employeeId == request.auth.uid
+          );
+        }
+        allow read: if isGrievanceParticipant();
+        allow create: if isGrievanceParticipant() && request.resource.data.authorUid == request.auth.uid;
+        allow update, delete: if isAdmin() || (isSignedIn() && resource.data.authorUid == request.auth.uid);
+      }
     }
 
     // --- leaves -----------------------------------------------------------

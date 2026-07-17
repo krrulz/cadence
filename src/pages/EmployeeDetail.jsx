@@ -13,11 +13,12 @@ import ComposeEmailModal from '../components/ComposeEmailModal.jsx'
 import EditLeaveModal from '../components/EditLeaveModal.jsx'
 import OneOnOnes from '../components/OneOnOnes.jsx'
 import Goals from '../components/Goals.jsx'
+import GrievanceList from '../components/GrievanceList.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { getUserDoc, getRecordsForEmployee, addRecord, updateRecord } from '../lib/firestoreHelpers.js'
 import { computeLeaveBalance, sortByDateDesc } from '../lib/aggregate.js'
-import { GRIEVANCE_STATUSES, FEEDBACK_TYPES, RECOGNITION_TYPES } from '../lib/constants.js'
+import { GRIEVANCE_STATUSES, GRIEVANCE_PRIORITIES, FEEDBACK_TYPES, RECOGNITION_TYPES } from '../lib/constants.js'
 import {
   performanceSummaryLine,
   grievanceSummaryLine,
@@ -158,6 +159,7 @@ export default function EmployeeDetail() {
         {tab === 'Grievances' && (
           <GrievancesTab
             records={records.grievances}
+            viewer={{ uid: adminProfile?.id, name: adminProfile?.name, role: 'admin' }}
             onUpdate={(rec) => setModal({ type: 'update-grievance', data: rec })}
             selectedIds={selectedIdsByCollection.grievances}
             onToggle={makeToggle('grievances', grievanceSummaryLine)}
@@ -361,59 +363,24 @@ function PerformanceForm({ employeeId, defaultReviewer, onClose, onSaved }) {
 
 // --- Grievances ----------------------------------------------------------
 
-function GrievancesTab({ records, onUpdate, selectedIds, onToggle }) {
-  const sorted = sortByDateDesc(records, 'dateRaised')
+function GrievancesTab({ records, viewer, onUpdate, selectedIds, onToggle }) {
   return (
     <Section title="Grievances">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
-              <th className="py-2 pr-2"></th>
-              <th className="py-2 pr-4">Date Raised</th>
-              <th className="py-2 pr-4">Category</th>
-              <th className="py-2 pr-4">Description</th>
-              <th className="py-2 pr-4">Status</th>
-              <th className="py-2 pr-4">Resolved</th>
-              <th className="py-2 pr-4"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((r) => (
-              <tr key={r.id} className="border-b border-slate-100">
-                <SelectCell record={r} selectedIds={selectedIds} onToggle={onToggle} />
-                <td className="py-2 pr-4">{r.dateRaised}</td>
-                <td className="py-2 pr-4">{r.category}</td>
-                <td className="py-2 pr-4 max-w-xs truncate" title={r.description}>{r.description}</td>
-                <td className="py-2 pr-4">
-                  <StatusBadge label={r.status} />
-                </td>
-                <td className="py-2 pr-4 text-slate-500">
-                  {r.status === 'Resolved' ? `${r.resolutionDate || ''} by ${r.resolvedBy || ''}` : '—'}
-                </td>
-                <td className="py-2 pr-4">
-                  <button type="button" onClick={() => onUpdate(r)} className="text-brand hover:underline">
-                    Update
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {sorted.length === 0 && (
-              <tr>
-                <td colSpan={7} className="py-6 text-center text-slate-400">
-                  No grievances raised.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <GrievanceList
+        grievances={records}
+        viewer={viewer}
+        onUpdate={onUpdate}
+        selectedIds={selectedIds}
+        onToggle={onToggle}
+      />
     </Section>
   )
 }
 
 function GrievanceUpdateForm({ record, defaultResolvedBy, onClose, onSaved }) {
   const [status, setStatus] = useState(record.status)
+  const [priority, setPriority] = useState(record.priority || 'Medium')
+  const [assignee, setAssignee] = useState(record.assignee || defaultResolvedBy || '')
   const [resolutionDate, setResolutionDate] = useState(record.resolutionDate || '')
   const [resolvedBy, setResolvedBy] = useState(record.resolvedBy || defaultResolvedBy || '')
   const [submitting, setSubmitting] = useState(false)
@@ -421,7 +388,7 @@ function GrievanceUpdateForm({ record, defaultResolvedBy, onClose, onSaved }) {
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
-    const data = { status }
+    const data = { status, priority, assignee }
     if (status === 'Resolved') {
       data.resolutionDate = resolutionDate
       data.resolvedBy = resolvedBy
@@ -436,16 +403,32 @@ function GrievanceUpdateForm({ record, defaultResolvedBy, onClose, onSaved }) {
     <Modal title="Update Grievance" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <p className="text-sm text-slate-600">{record.description}</p>
-        <label className="block text-sm">
-          <span className="font-medium text-slate-700">Status</span>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="input mt-1">
-            {GRIEVANCE_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label className="block text-sm">
+            <span className="font-medium text-slate-700">Status</span>
+            <select value={status} onChange={(e) => setStatus(e.target.value)} className="input mt-1">
+              {GRIEVANCE_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm">
+            <span className="font-medium text-slate-700">Priority</span>
+            <select value={priority} onChange={(e) => setPriority(e.target.value)} className="input mt-1">
+              {GRIEVANCE_PRIORITIES.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <LabeledInput label="Assignee" value={assignee} onChange={setAssignee} placeholder="Who's handling this?" />
+        <p className="text-xs text-slate-400">
+          Target resolution is derived from priority (High 7d · Medium 14d · Low 30d) from the date raised.
+        </p>
         {status === 'Resolved' && (
           <>
             <LabeledInput label="Resolution Date" type="date" required value={resolutionDate} onChange={setResolutionDate} />

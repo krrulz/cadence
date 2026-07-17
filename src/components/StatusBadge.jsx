@@ -7,6 +7,14 @@ const STYLES = {
   Pending: 'bg-amber-100 text-amber-800',
   Approved: 'bg-green-100 text-green-800',
   Rejected: 'bg-red-100 text-red-800',
+  // Grievance SLA states
+  'On Track': 'bg-green-100 text-green-800',
+  'Due Soon': 'bg-amber-100 text-amber-800',
+  Overdue: 'bg-red-100 text-red-800',
+  // Grievance priorities
+  High: 'bg-red-100 text-red-800',
+  Medium: 'bg-amber-100 text-amber-800',
+  Low: 'bg-slate-200 text-slate-700',
   // Goal statuses ('In Progress' shared with grievances above)
   'Not Started': 'bg-slate-200 text-slate-700',
   'At Risk': 'bg-red-100 text-red-800',

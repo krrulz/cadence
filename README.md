@@ -159,7 +159,7 @@ Deleting another user's Auth account and cascading their data can only be done s
 - `performance/{id}` — `employeeId, date, entryType ('Review'|'Achievement')`, plus:
   - `Review` (admin-authored) — `reviewPeriod, rating (1-5), reviewer, comments, goals`
   - `Achievement` (self-logged by the employee) — `title, description`
-- `grievances/{id}` — `employeeId, dateRaised, category, description, status ('Open'|'In Progress'|'Resolved'), resolutionDate, resolvedBy`
+- `grievances/{id}` — `employeeId, dateRaised, category, description, status ('Open'|'In Progress'|'Resolved'), priority ('Low'|'Medium'|'High'), assignee, resolutionDate, resolvedBy`, plus a `comments/{id}` subcollection (`authorUid, authorName, authorRole, text, createdAt`). Target resolution date is derived from priority (High 7d · Medium 14d · Low 30d) from the date raised and surfaced as an SLA badge (On Track / Due Soon / Overdue).
 - `recognitions/{id}` — `employeeId` (recipient), `recipientName, date, type, description, givenBy, givenByUid, source ('admin'|'peer'), sharedPublicly`
 - `feedback/{id}` — `employeeId, date, type ('1:1'|'Peer'|'360'|'Skip-level'), givenBy, summary, actionItems, followUpDate`
 - `leaves/{id}` — `employeeId, leaveType, dateFrom, dateTo, numDays, status ('Pending'|'Approved'|'Rejected'), approvedBy`

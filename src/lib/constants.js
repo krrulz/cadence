@@ -35,6 +35,12 @@ export const PEER_RECOGNITION_TYPES = ['Spot Award', 'Peer Shoutout', 'Great Tea
 
 export const GRIEVANCE_STATUSES = ['Open', 'In Progress', 'Resolved']
 
+export const GRIEVANCE_PRIORITIES = ['Low', 'Medium', 'High']
+
+// Target time-to-resolution (calendar days from the date raised) per priority.
+// Used to derive an SLA state (On Track / Due Soon / Overdue) for open grievances.
+export const GRIEVANCE_SLA_DAYS = { Low: 30, Medium: 14, High: 7 }
+
 export const GOAL_STATUSES = ['Not Started', 'In Progress', 'At Risk', 'Completed']
 
 export const LEAVE_STATUSES = ['Pending', 'Approved', 'Rejected']

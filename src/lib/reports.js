@@ -1,3 +1,5 @@
+import { grievanceDueDate } from './grievance.js'
+
 // Column definitions for each exportable section. Each report prepends the
 // employee's name and email so a downloaded CSV stands alone. `field` reads
 // straight off the record; `value` is for computed/derived columns.
@@ -27,8 +29,11 @@ export const REPORTS = {
       ...EMPLOYEE_COLUMNS,
       { header: 'Date Raised', field: 'dateRaised' },
       { header: 'Category', field: 'category' },
+      { header: 'Priority', field: 'priority' },
+      { header: 'Assignee', field: 'assignee' },
       { header: 'Description', field: 'description' },
       { header: 'Status', field: 'status' },
+      { header: 'Target Date', value: (r) => grievanceDueDate(r) || '' },
       { header: 'Resolution Date', field: 'resolutionDate' },
       { header: 'Resolved By', field: 'resolvedBy' },
     ],
