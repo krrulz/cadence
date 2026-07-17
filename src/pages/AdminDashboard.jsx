@@ -5,6 +5,7 @@ import StatCard from '../components/StatCard.jsx'
 import StatusBadge from '../components/StatusBadge.jsx'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import AddEmployeeModal from '../components/AddEmployeeModal.jsx'
+import ReportModal from '../components/ReportModal.jsx'
 import { getAllUsers, getAllRecords } from '../lib/firestoreHelpers.js'
 import { buildEmployeeSummary } from '../lib/aggregate.js'
 
@@ -12,8 +13,11 @@ export default function AdminDashboard() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [summaries, setSummaries] = useState([])
+  const [records, setRecords] = useState({})
   const [search, setSearch] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showReport, setShowReport] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(() => new Set())
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -31,6 +35,7 @@ export default function AdminDashboard() {
       buildEmployeeSummary(u, { performance, grievances, recognitions, feedback, leaves }),
     )
     setSummaries(built)
+    setRecords({ performance, grievances, recognitions, feedback, leaves })
     setLoading(false)
   }, [])
 
@@ -45,6 +50,30 @@ export default function AdminDashboard() {
       (s) => s.user.name?.toLowerCase().includes(q) || s.user.department?.toLowerCase().includes(q),
     )
   }, [summaries, search])
+
+  const allEmployees = useMemo(() => summaries.map((s) => s.user), [summaries])
+  const scopeEmployees = useMemo(
+    () => (selectedIds.size ? allEmployees.filter((e) => selectedIds.has(e.id)) : allEmployees),
+    [allEmployees, selectedIds],
+  )
+  const filteredIds = useMemo(() => filtered.map((s) => s.user.id), [filtered])
+  const allFilteredSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id))
+
+  function toggleRow(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+  function toggleAllFiltered() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (allFilteredSelected) filteredIds.forEach((id) => next.delete(id))
+      else filteredIds.forEach((id) => next.add(id))
+      return next
+    })
+  }
 
   const stats = useMemo(() => {
     const teamSize = summaries.length
@@ -69,9 +98,14 @@ export default function AdminDashboard() {
     <Layout>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-slate-900">Admin Dashboard</h1>
-        <button type="button" onClick={() => setShowAddModal(true)} className="btn-primary">
-          + Add Employee
-        </button>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setShowReport(true)} className="btn-secondary">
+            ⤓ Download report
+          </button>
+          <button type="button" onClick={() => setShowAddModal(true)} className="btn-primary">
+            + Add Employee
+          </button>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -83,7 +117,12 @@ export default function AdminDashboard() {
 
       <div className="mt-6 card">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-semibold text-accent">Roster</h2>
+          <h2 className="font-semibold text-accent">
+            Roster
+            {selectedIds.size > 0 && (
+              <span className="ml-2 text-sm font-normal text-slate-500">{selectedIds.size} selected</span>
+            )}
+          </h2>
           <input
             type="text"
             placeholder="Search by name or department…"
@@ -94,9 +133,18 @@ export default function AdminDashboard() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-sm">
+          <table className="w-full min-w-[940px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+                <th className="py-2 pr-2">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-brand"
+                    checked={allFilteredSelected}
+                    onChange={toggleAllFiltered}
+                    aria-label="Select all"
+                  />
+                </th>
                 <th className="py-2 pr-4">Name</th>
                 <th className="py-2 pr-4">Department</th>
                 <th className="py-2 pr-4">Latest Rating</th>
@@ -114,6 +162,15 @@ export default function AdminDashboard() {
                   onClick={() => navigate(`/employee/${s.user.id}`)}
                   className="cursor-pointer border-b border-slate-100 hover:bg-slate-50"
                 >
+                  <td className="py-2 pr-2" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-brand"
+                      checked={selectedIds.has(s.user.id)}
+                      onChange={() => toggleRow(s.user.id)}
+                      aria-label={`Select ${s.user.name}`}
+                    />
+                  </td>
                   <td className="py-2 pr-4 font-medium text-slate-800">{s.user.name}</td>
                   <td className="py-2 pr-4 text-slate-600">{s.user.department}</td>
                   <td className="py-2 pr-4 text-slate-600">
@@ -134,7 +191,7 @@ export default function AdminDashboard() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                  <td colSpan={9} className="py-8 text-center text-slate-400">
                     No employees match your search.
                   </td>
                 </tr>
@@ -146,6 +203,9 @@ export default function AdminDashboard() {
 
       {showAddModal && (
         <AddEmployeeModal onClose={() => setShowAddModal(false)} onCreated={loadData} />
+      )}
+      {showReport && (
+        <ReportModal scopeEmployees={scopeEmployees} records={records} onClose={() => setShowReport(false)} />
       )}
     </Layout>
   )

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import { sendPasswordResetEmail } from 'firebase/auth'
+import { auth } from '../firebase.js'
 import Layout from '../components/Layout.jsx'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import StatusBadge from '../components/StatusBadge.jsx'
@@ -115,13 +117,14 @@ export default function EmployeeDetail() {
         ← Back to roster
       </button>
 
-      <div className="mt-2 flex items-center justify-between">
+      <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">{employee.name}</h1>
           <p className="text-sm text-slate-500">
             {employee.department} · Joined {employee.dateOfJoining} · Manager {employee.managerName || '—'}
           </p>
         </div>
+        <AdminEmployeeActions employee={employee} onDeleted={() => navigate('/')} />
       </div>
 
       <div className="mt-4 flex gap-1 overflow-x-auto border-b border-slate-200">
@@ -699,6 +702,117 @@ function LeaveDecisionModal({ record, decision, adminName, onClose, onSaved }) {
         <button type="button" onClick={handleConfirm} disabled={submitting} className="btn-primary">
           {submitting ? 'Saving…' : `Confirm ${decision}`}
         </button>
+      </div>
+    </Modal>
+  )
+}
+
+// --- Admin account actions -------------------------------------------------
+
+// Reset-password (client-side email, works immediately) and hard-delete (calls
+// the serverless endpoint; inert until FIREBASE_SERVICE_ACCOUNT is configured).
+function AdminEmployeeActions({ employee, onDeleted }) {
+  const [resetState, setResetState] = useState(null) // null | 'sending' | 'sent' | error string
+  const [showDelete, setShowDelete] = useState(false)
+
+  async function handleReset() {
+    setResetState('sending')
+    try {
+      await sendPasswordResetEmail(auth, employee.email)
+      setResetState('sent')
+    } catch (err) {
+      setResetState(err.message || 'Failed to send reset email.')
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-2">
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={handleReset}
+          disabled={resetState === 'sending' || resetState === 'sent'}
+          className="btn-secondary text-xs"
+        >
+          {resetState === 'sending' ? 'Sending…' : resetState === 'sent' ? '✓ Reset email sent' : 'Reset password'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowDelete(true)}
+          className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+        >
+          Delete employee
+        </button>
+      </div>
+      {resetState && resetState !== 'sending' && resetState !== 'sent' && (
+        <p className="text-xs text-red-600">{resetState}</p>
+      )}
+      {showDelete && (
+        <DeleteEmployeeModal employee={employee} onClose={() => setShowDelete(false)} onDeleted={onDeleted} />
+      )}
+    </div>
+  )
+}
+
+function DeleteEmployeeModal({ employee, onClose, onDeleted }) {
+  const [confirmText, setConfirmText] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const canDelete = confirmText.trim() === employee.name
+
+  async function handleDelete() {
+    if (!canDelete) return
+    setSubmitting(true)
+    setError('')
+    try {
+      const idToken = await auth.currentUser.getIdToken()
+      const res = await fetch('/api/delete-employee', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ uid: employee.id }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`)
+      onDeleted()
+    } catch (err) {
+      setError(err.message || 'Delete failed.')
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Modal title="Delete Employee" onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-sm text-slate-600">
+          This <strong>permanently deletes</strong> {employee.name}&apos;s login and every record —
+          performance, grievances, recognitions, feedback, leave and 1:1s. This cannot be undone.
+        </p>
+        <label className="block text-sm">
+          <span className="font-medium text-slate-700">
+            Type <span className="font-mono text-red-700">{employee.name}</span> to confirm
+          </span>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            className="input mt-1"
+            autoComplete="off"
+          />
+        </label>
+        {error && <p className="text-xs text-red-600">{error}</p>}
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="btn-secondary">
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={!canDelete || submitting}
+            className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+          >
+            {submitting ? 'Deleting…' : 'Delete permanently'}
+          </button>
+        </div>
       </div>
     </Modal>
   )

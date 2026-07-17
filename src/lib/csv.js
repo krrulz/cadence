@@ -49,6 +49,21 @@ export const BULK_UPLOAD_TEMPLATE =
   'name,email,password,department,managerName,dateOfJoining\n' +
   'Jane Doe,jane.doe@example.com,TempPass123,Engineering,John Smith,2026-01-15\n'
 
+// Quote a value only when it could break CSV structure (comma, quote, newline).
+// Doubles embedded quotes per RFC 4180.
+function csvCell(value) {
+  const s = value == null ? '' : String(value)
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
+}
+
+// rows is an array of arrays (already ordered to match headers).
+export function buildCsv(headers, rows) {
+  const lines = [headers.map(csvCell).join(',')]
+  for (const row of rows) lines.push(row.map(csvCell).join(','))
+  return lines.join('\r\n')
+}
+
 export function downloadTextFile(filename, content, mimeType = 'text/csv') {
   const blob = new Blob([content], { type: mimeType })
   const url = URL.createObjectURL(blob)

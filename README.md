@@ -11,7 +11,7 @@ Built with Vite + React + Tailwind, Firebase Authentication (email/password) and
 - react-router-dom
 - Firebase Authentication (email/password, no self-signup)
 - Firestore (Spark/free plan)
-- Vercel (static hosting + one serverless function for the optional AI email feature)
+- Vercel (static hosting + serverless functions for the optional AI email feature and admin delete-employee)
 - Cloudflare Workers AI (optional — powers "Rewrite with AI"; see [§6](#6-ai-email-composition-optional))
 
 ## 1. Firebase project setup
@@ -132,6 +132,26 @@ You do **not** need to own a domain — a free Cloudflare account with no domain
 ### Privacy note
 
 This feature sends the selected records — which can include **named employees' grievances, performance ratings and feedback** — to Cloudflare for processing. Cloudflare Workers AI was chosen over free tiers that train on submitted data (Google's Gemini free tier does, for example). **Verify Cloudflare's current terms yourself before relying on this**, and consider whether your GDPR basis covers it. Nothing is sent unless an admin clicks "Rewrite with AI", and no email is ever sent by the app — the draft only ever goes to your own clipboard or email client.
+
+## 7. Admin account actions (reset password & delete employee)
+
+Each employee's detail page has two admin-only controls in the header:
+
+- **Reset password** — sends Firebase's standard password-reset email to the employee. This is a pure client-side call (`sendPasswordResetEmail`); it needs **no** backend or extra config and works as soon as the app is deployed. The app never sees or stores passwords.
+- **Delete employee** — **permanently** deletes the login account **and** every record (performance, grievances, recognitions, feedback, leave, 1:1s including their sub-notes and action items). A typed-name confirmation is required. This cannot be undone.
+
+### Delete requires a service-account key
+
+Deleting another user's Auth account and cascading their data can only be done server-side with the Firebase **Admin SDK**, so the delete button calls [`api/delete-employee.js`](./api/delete-employee.js). Until the key below is set, the button works but returns *"Server not configured"* — nothing is deleted.
+
+1. Firebase console → **Project settings** → **Service accounts** → **Generate new private key**. This downloads a JSON file. **Treat it like a root password** — it bypasses all Firestore rules. Never commit it (`.env*` is gitignored).
+2. Set these variables in `.env.local` (local dev) and Vercel → Settings → Environment Variables (production). `FIREBASE_SERVICE_ACCOUNT` is the **entire JSON file contents on one line**:
+   ```
+   FIREBASE_PROJECT_ID=teamtracker-a9333   # same value as VITE_FIREBASE_PROJECT_ID
+   FIREBASE_SERVICE_ACCOUNT={"type":"service_account","project_id":"…", … }
+   ```
+   (`FIREBASE_PROJECT_ID` is shared with the AI feature — set it once.)
+3. The endpoint re-verifies the caller's Firebase ID token **and** checks their `users/{uid}.role === 'admin'` server-side before deleting, so it can't be abused by a non-admin who finds the URL. It also refuses to let an admin delete their own account.
 
 ## Data model (Firestore)
 
