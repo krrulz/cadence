@@ -9,6 +9,7 @@ import DataTable from '../components/DataTable.jsx'
 import PerformanceTimeline from '../components/PerformanceTimeline.jsx'
 import ComposeEmailModal from '../components/ComposeEmailModal.jsx'
 import EditLeaveModal from '../components/EditLeaveModal.jsx'
+import OneOnOnes from '../components/OneOnOnes.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { getUserDoc, getRecordsForEmployee, addRecord, updateRecord } from '../lib/firestoreHelpers.js'
@@ -22,8 +23,8 @@ import {
   leaveSummaryLine,
 } from '../lib/summaryLines.js'
 
-const TABS = ['Performance', 'Grievances', 'Recognitions', 'Feedback', 'Leave']
-const TAB_LABELS = { Performance: 'Performance & Achievements' }
+const TABS = ['Performance', 'Grievances', 'Recognitions', 'Feedback', 'Leave', '1:1s']
+const TAB_LABELS = { Performance: 'Performance & Achievements', '1:1s': '1:1 Meetings' }
 
 export default function EmployeeDetail() {
   const { uid } = useParams()
@@ -186,6 +187,13 @@ export default function EmployeeDetail() {
             selectedIds={selectedIdsByCollection.leaves}
             onToggle={makeToggle('leaves', leaveSummaryLine)}
             onEditBalance={() => setModal({ type: 'edit-leave' })}
+          />
+        )}
+        {tab === '1:1s' && (
+          <OneOnOnes
+            employeeId={uid}
+            viewer={{ uid: adminProfile?.id, name: adminProfile?.name, role: 'admin' }}
+            canSchedule
           />
         )}
       </div>

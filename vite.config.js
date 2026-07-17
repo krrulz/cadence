@@ -75,5 +75,12 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
     plugins: [react(), apiDevServer(env)],
+    server: {
+      // Honor a harness/host-assigned port (Vite ignores PORT by default).
+      // Falls back to Vite's usual 5173, and lets it pick the next free port
+      // rather than failing if 5173 is taken.
+      port: process.env.PORT ? Number(process.env.PORT) : 5173,
+      strictPort: false,
+    },
   }
 })

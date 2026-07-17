@@ -3,6 +3,7 @@ import {
   doc,
   addDoc,
   updateDoc,
+  deleteDoc,
   setDoc,
   getDoc,
   getDocs,
@@ -59,4 +60,29 @@ export function addRecord(collectionName, data) {
 
 export function updateRecord(collectionName, id, data) {
   return updateDoc(doc(db, collectionName, id), data)
+}
+
+export function deleteRecord(collectionName, id) {
+  return deleteDoc(doc(db, collectionName, id))
+}
+
+// --- subcollections ---------------------------------------------------
+// Used by the 1:1 module, where each note / action item is its own document
+// under oneOnOnes/{parentId}/{subName}/{id} so per-author rules can apply.
+
+export async function getSubRecords(parentCollection, parentId, subName) {
+  const snap = await getDocs(collection(db, parentCollection, parentId, subName))
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+}
+
+export function addSubRecord(parentCollection, parentId, subName, data) {
+  return addDoc(collection(db, parentCollection, parentId, subName), data)
+}
+
+export function updateSubRecord(parentCollection, parentId, subName, subId, data) {
+  return updateDoc(doc(db, parentCollection, parentId, subName, subId), data)
+}
+
+export function deleteSubRecord(parentCollection, parentId, subName, subId) {
+  return deleteDoc(doc(db, parentCollection, parentId, subName, subId))
 }

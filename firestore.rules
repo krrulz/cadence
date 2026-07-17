@@ -94,5 +94,56 @@ service cloud.firestore {
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
+
+    // --- one-on-ones ------------------------------------------------------
+    // A collaborative 1:1 between the admin and one employee. The parent doc
+    // holds metadata + a shared agenda; notes and action items live in
+    // subcollections so per-author integrity can be enforced (an employee can't
+    // edit or delete the manager's note, and vice versa). Anyone in the 1:1 may
+    // tick an action item done.
+    match /oneOnOnes/{id} {
+      // A participant of *this* 1:1 (admin, or the employee it's about).
+      function isParticipant() {
+        return isSignedIn() && (isAdmin() || resource.data.employeeId == request.auth.uid);
+      }
+      // Same check for a not-yet-created parent (used by subcollection rules via get()).
+      function isParticipantOf(pid) {
+        return isSignedIn() && (
+          isAdmin() ||
+          get(/databases/$(database)/documents/oneOnOnes/$(pid)).data.employeeId == request.auth.uid
+        );
+      }
+
+      allow read: if isParticipant();
+      allow create: if isAdmin() || isOwner(request.resource.data.employeeId);
+      // Admin can edit anything. The employee participant may edit the shared
+      // agenda but not reassign the 1:1 or rewrite its metadata.
+      allow update: if isAdmin() || (
+        isOwner(resource.data.employeeId) &&
+        request.resource.data.employeeId == resource.data.employeeId &&
+        request.resource.data.date == resource.data.date &&
+        request.resource.data.createdBy == resource.data.createdBy
+      );
+      allow delete: if isAdmin();
+
+      // Notes: each carries its author. You may only create your own; only the
+      // author (or admin) may edit or delete it.
+      match /notes/{noteId} {
+        allow read: if isParticipantOf(id);
+        allow create: if isParticipantOf(id) && request.resource.data.authorUid == request.auth.uid;
+        allow update, delete: if isAdmin() || (isSignedIn() && resource.data.authorUid == request.auth.uid);
+      }
+
+      // Action items: anyone in the 1:1 may toggle `done`; only the creator (or
+      // admin) may change the text/owner or delete.
+      match /actions/{actionId} {
+        allow read: if isParticipantOf(id);
+        allow create: if isParticipantOf(id) && request.resource.data.createdByUid == request.auth.uid;
+        allow update: if isAdmin() ||
+          (isSignedIn() && resource.data.createdByUid == request.auth.uid) ||
+          (isParticipantOf(id) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done']));
+        allow delete: if isAdmin() || (isSignedIn() && resource.data.createdByUid == request.auth.uid);
+      }
+    }
   }
 }

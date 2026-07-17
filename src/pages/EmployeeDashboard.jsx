@@ -6,6 +6,7 @@ import Modal from '../components/Modal.jsx'
 import Section from '../components/Section.jsx'
 import DataTable from '../components/DataTable.jsx'
 import PerformanceTimeline from '../components/PerformanceTimeline.jsx'
+import OneOnOnes from '../components/OneOnOnes.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { getRecordsForEmployee, getRecordsByField, getAllUsers, addRecord } from '../lib/firestoreHelpers.js'
@@ -105,6 +106,12 @@ export default function EmployeeDashboard() {
             emptyText="No feedback logged yet."
           />
         </Section>
+
+        <OneOnOnes
+          employeeId={user.uid}
+          viewer={{ uid: user.uid, name: profile.name, role: 'employee' }}
+          canSchedule={false}
+        />
 
         <Section title="My Grievances" onAdd={() => setModal('grievance')} addLabel="+ Raise Grievance">
           <div className="overflow-x-auto">
