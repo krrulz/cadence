@@ -14,6 +14,7 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { getRecordsForEmployee, getRecordsByField, getAllUsers, getAllRecords, addRecord } from '../lib/firestoreHelpers.js'
 import { computeLeaveBalance, sortByDateDesc } from '../lib/aggregate.js'
 import { computeLeaveDays, holidaySet } from '../lib/leave.js'
+import { sendAlert, getAdminEmails } from '../lib/notify.js'
 import { GRIEVANCE_CATEGORIES, LEAVE_TYPES, PEER_RECOGNITION_TYPES } from '../lib/constants.js'
 
 function todayISO() {
@@ -175,11 +176,17 @@ export default function EmployeeDashboard() {
       </div>
 
       {modal === 'grievance' && (
-        <GrievanceForm employeeId={user.uid} onClose={() => setModal(null)} onSaved={loadData} />
+        <GrievanceForm
+          employeeId={user.uid}
+          requesterName={profile.name}
+          onClose={() => setModal(null)}
+          onSaved={loadData}
+        />
       )}
       {modal === 'leave' && (
         <LeaveForm
           employeeId={user.uid}
+          requesterName={profile.name}
           holidays={records.holidays}
           onClose={() => setModal(null)}
           onSaved={loadData}
@@ -343,7 +350,7 @@ function AchievementForm({ employeeId, onClose, onSaved }) {
   )
 }
 
-function GrievanceForm({ employeeId, onClose, onSaved }) {
+function GrievanceForm({ employeeId, requesterName, onClose, onSaved }) {
   const [category, setCategory] = useState(GRIEVANCE_CATEGORIES[0])
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -358,6 +365,13 @@ function GrievanceForm({ employeeId, onClose, onSaved }) {
       description,
       status: 'Open',
     })
+    getAdminEmails().then((admins) =>
+      sendAlert({
+        to: admins,
+        subject: `New grievance raised by ${requesterName || 'an employee'}`,
+        text: `${requesterName || 'An employee'} raised a ${category} grievance in Cadence.\n\nLog in to review and assign it.`,
+      }),
+    )
     setSubmitting(false)
     onSaved()
     onClose()
@@ -383,7 +397,7 @@ function GrievanceForm({ employeeId, onClose, onSaved }) {
   )
 }
 
-function LeaveForm({ employeeId, holidays = [], onClose, onSaved }) {
+function LeaveForm({ employeeId, requesterName, holidays = [], onClose, onSaved }) {
   const [leaveType, setLeaveType] = useState(LEAVE_TYPES[0])
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -411,6 +425,13 @@ function LeaveForm({ employeeId, holidays = [], onClose, onSaved }) {
       halfDay: effectiveHalfDay,
       status: 'Pending',
     })
+    getAdminEmails().then((admins) =>
+      sendAlert({
+        to: admins,
+        subject: `New leave request from ${requesterName || 'an employee'}`,
+        text: `${requesterName || 'An employee'} requested ${leaveType} (${dateFrom} → ${dateTo}, ${numDays} day${numDays === 1 ? '' : 's'}) in Cadence.\n\nLog in to approve or reject it.`,
+      }),
+    )
     setSubmitting(false)
     onSaved()
     onClose()

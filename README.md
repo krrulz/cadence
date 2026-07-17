@@ -11,7 +11,7 @@ Built with Vite + React + Tailwind, Firebase Authentication (email/password) and
 - react-router-dom
 - Firebase Authentication (email/password, no self-signup)
 - Firestore (Spark/free plan)
-- Vercel (static hosting + serverless functions for the optional AI email feature and admin delete-employee)
+- Vercel (static hosting + serverless functions for the optional AI email, admin delete-employee, and email-alert features)
 - Cloudflare Workers AI (optional — powers "Rewrite with AI"; see [§6](#6-ai-email-composition-optional))
 
 ## 1. Firebase project setup
@@ -152,6 +152,29 @@ Deleting another user's Auth account and cascading their data can only be done s
    ```
    (`FIREBASE_PROJECT_ID` is shared with the AI feature — set it once.)
 3. The endpoint re-verifies the caller's Firebase ID token **and** checks their `users/{uid}.role === 'admin'` server-side before deleting, so it can't be abused by a non-admin who finds the URL. It also refuses to let an admin delete their own account.
+
+## 8. Email alerts (optional)
+
+Cadence can email a short notification when something relevant happens — a leave request approved/rejected, new feedback or performance review, a grievance status change (→ the employee), and a new leave request or grievance (→ all admins). Alerts are sent server-side via [`api/send-alert.js`](./api/send-alert.js) using any SMTP server you provide.
+
+**The feature is entirely optional and best-effort.** With no SMTP variables set, the endpoint returns `{ skipped: true }` and the app behaves exactly as before — an alert never blocks or fails the action that triggered it, and the client swallows all alert errors.
+
+### Setup
+
+1. Get SMTP credentials from any provider (a free tier of Brevo, Mailjet, Resend-SMTP, or even a Gmail app password works).
+2. Set these server-side variables (no `VITE_` prefix) in `.env.local` and Vercel → Settings → Environment Variables:
+   ```
+   SMTP_HOST=smtp.your-provider.com
+   SMTP_PORT=587                     # 465 for implicit TLS
+   SMTP_SECURE=false                 # 'true' only for port 465
+   SMTP_USER=<smtp username>
+   SMTP_PASS=<smtp password>
+   SMTP_FROM="Cadence <noreply@yourdomain.com>"
+   FIREBASE_PROJECT_ID=teamtracker-a9333   # shared with the other functions
+   ```
+3. The endpoint verifies the caller's Firebase ID token before sending, caps recipients, and only sends to valid-looking addresses — it can't be used as an open relay.
+
+> Note: `nodemailer` is a runtime dependency of this function. No email is ever sent unless SMTP is configured, and the content is a short "log in to view" nudge — the actual records stay in the app.
 
 ## Data model (Firestore)
 

@@ -17,6 +17,7 @@ import GrievanceList from '../components/GrievanceList.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { getUserDoc, getRecordsForEmployee, addRecord, updateRecord } from '../lib/firestoreHelpers.js'
+import { sendAlert } from '../lib/notify.js'
 import { computeLeaveBalance, sortByDateDesc } from '../lib/aggregate.js'
 import { GRIEVANCE_STATUSES, GRIEVANCE_PRIORITIES, FEEDBACK_TYPES, RECOGNITION_TYPES } from '../lib/constants.js'
 import {
@@ -226,6 +227,7 @@ export default function EmployeeDetail() {
       {modal?.type === 'add-performance' && (
         <PerformanceForm
           employeeId={uid}
+          employee={employee}
           defaultReviewer={adminProfile?.name}
           onClose={() => setModal(null)}
           onSaved={loadData}
@@ -243,6 +245,7 @@ export default function EmployeeDetail() {
       {modal?.type === 'add-feedback' && (
         <FeedbackForm
           employeeId={uid}
+          employee={employee}
           defaultGivenBy={adminProfile?.name}
           onClose={() => setModal(null)}
           onSaved={loadData}
@@ -251,6 +254,7 @@ export default function EmployeeDetail() {
       {modal?.type === 'update-grievance' && (
         <GrievanceUpdateForm
           record={modal.data}
+          employee={employee}
           defaultResolvedBy={adminProfile?.name}
           onClose={() => setModal(null)}
           onSaved={loadData}
@@ -259,6 +263,7 @@ export default function EmployeeDetail() {
       {modal?.type === 'decide-leave' && (
         <LeaveDecisionModal
           record={modal.data}
+          employee={employee}
           decision={modal.decision}
           adminName={adminProfile?.name}
           onClose={() => setModal(null)}
@@ -311,7 +316,7 @@ function PerformanceTab({ records, onAdd, selectedIds, onToggle }) {
   )
 }
 
-function PerformanceForm({ employeeId, defaultReviewer, onClose, onSaved }) {
+function PerformanceForm({ employeeId, employee, defaultReviewer, onClose, onSaved }) {
   const [form, setForm] = useState({
     date: '',
     reviewPeriod: '',
@@ -326,6 +331,11 @@ function PerformanceForm({ employeeId, defaultReviewer, onClose, onSaved }) {
     e.preventDefault()
     setSubmitting(true)
     await addRecord('performance', { employeeId, entryType: 'Review', ...form, rating: Number(form.rating) })
+    sendAlert({
+      to: employee?.email,
+      subject: 'A new performance review was added',
+      text: `Hi ${employee?.name || ''},\n\nA performance review for ${form.reviewPeriod} (rating ${form.rating}/5) has been logged in Cadence by ${form.reviewer}.\n\nLog in to view the details.`,
+    })
     setSubmitting(false)
     onSaved()
     onClose()
@@ -377,7 +387,7 @@ function GrievancesTab({ records, viewer, onUpdate, selectedIds, onToggle }) {
   )
 }
 
-function GrievanceUpdateForm({ record, defaultResolvedBy, onClose, onSaved }) {
+function GrievanceUpdateForm({ record, employee, defaultResolvedBy, onClose, onSaved }) {
   const [status, setStatus] = useState(record.status)
   const [priority, setPriority] = useState(record.priority || 'Medium')
   const [assignee, setAssignee] = useState(record.assignee || defaultResolvedBy || '')
@@ -394,6 +404,13 @@ function GrievanceUpdateForm({ record, defaultResolvedBy, onClose, onSaved }) {
       data.resolvedBy = resolvedBy
     }
     await updateRecord('grievances', record.id, data)
+    if (status !== record.status) {
+      sendAlert({
+        to: employee?.email,
+        subject: `Your grievance is now "${status}"`,
+        text: `Hi ${employee?.name || ''},\n\nThe status of your grievance (${record.category}) changed to "${status}" in Cadence.\n\nLog in to view the details or add a comment.`,
+      })
+    }
     setSubmitting(false)
     onSaved()
     onClose()
@@ -537,7 +554,7 @@ function FeedbackTab({ records, onAdd, selectedIds, onToggle }) {
   )
 }
 
-function FeedbackForm({ employeeId, defaultGivenBy, onClose, onSaved }) {
+function FeedbackForm({ employeeId, employee, defaultGivenBy, onClose, onSaved }) {
   const [form, setForm] = useState({
     date: '',
     type: FEEDBACK_TYPES[0],
@@ -552,6 +569,11 @@ function FeedbackForm({ employeeId, defaultGivenBy, onClose, onSaved }) {
     e.preventDefault()
     setSubmitting(true)
     await addRecord('feedback', { employeeId, ...form })
+    sendAlert({
+      to: employee?.email,
+      subject: 'New feedback was shared with you',
+      text: `Hi ${employee?.name || ''},\n\n${form.givenBy} added ${form.type} feedback in Cadence.\n\nLog in to read it.`,
+    })
     setSubmitting(false)
     onSaved()
     onClose()
@@ -666,12 +688,17 @@ function LeaveTab({ balance, records, onApprove, onReject, selectedIds, onToggle
   )
 }
 
-function LeaveDecisionModal({ record, decision, adminName, onClose, onSaved }) {
+function LeaveDecisionModal({ record, employee, decision, adminName, onClose, onSaved }) {
   const [submitting, setSubmitting] = useState(false)
 
   async function handleConfirm() {
     setSubmitting(true)
     await updateRecord('leaves', record.id, { status: decision, approvedBy: adminName || '' })
+    sendAlert({
+      to: employee?.email,
+      subject: `Your leave request was ${decision.toLowerCase()}`,
+      text: `Hi ${employee?.name || ''},\n\nYour ${record.leaveType} request (${record.dateFrom} → ${record.dateTo}) was ${decision.toLowerCase()} by ${adminName || 'your manager'} in Cadence.`,
+    })
     setSubmitting(false)
     onSaved()
     onClose()
