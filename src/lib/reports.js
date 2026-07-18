@@ -1,5 +1,17 @@
 import { grievanceDueDate } from './grievance.js'
 
+// Progress derived from key results when present, else the manual value.
+function goalProgress(goal) {
+  const krs = goal.keyResults || []
+  if (krs.length) return Math.round((krs.filter((k) => k.done).length / krs.length) * 100)
+  return Number(goal.progress) || 0
+}
+
+// Flatten a goal's key results (incl. any linked 1:1 action items) to one cell.
+function formatKeyResults(goal) {
+  return (goal.keyResults || []).map((k) => `${k.text} [${k.done ? 'done' : 'open'}]`).join('; ')
+}
+
 // Column definitions for each exportable section. Each report prepends the
 // employee's name and email so a downloaded CSV stands alone. `field` reads
 // straight off the record; `value` is for computed/derived columns.
@@ -59,6 +71,18 @@ export const REPORTS = {
       { header: 'Summary', field: 'summary' },
       { header: 'Action Items', field: 'actionItems' },
       { header: 'Follow-up Date', field: 'followUpDate' },
+    ],
+  },
+  goals: {
+    label: 'Goals / OKRs',
+    columns: [
+      ...EMPLOYEE_COLUMNS,
+      { header: 'Objective', field: 'objective' },
+      { header: 'Status', field: 'status' },
+      { header: 'Progress %', value: (r) => goalProgress(r) },
+      { header: 'Due Date', field: 'dueDate' },
+      // Goal-linked 1:1 action items live here as key results.
+      { header: 'Key Results', value: (r) => formatKeyResults(r) },
     ],
   },
   leaves: {

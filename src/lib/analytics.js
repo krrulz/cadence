@@ -1,7 +1,7 @@
 // Team-wide aggregations for the Analytics dashboard. Pure functions over the
 // raw record collections so they can be unit-tested without Firestore.
 
-import { LEAVE_TYPES, GRIEVANCE_STATUSES } from './constants.js'
+import { LEAVE_TYPES, GRIEVANCE_STATUSES, GOAL_STATUSES } from './constants.js'
 import { isReview } from './aggregate.js'
 import { grievanceSla } from './grievance.js'
 import { parseISO } from './calendar.js'
@@ -40,6 +40,23 @@ export function grievanceStatusCounts(grievances) {
 // How many still-open grievances have blown their SLA.
 export function grievanceOverdueCount(grievances, today = new Date()) {
   return grievances.filter((g) => grievanceSla(g, today).state === 'Overdue').length
+}
+
+// 1:1 meetings split into completed vs still-open.
+export function oneOnOneStatusCounts(oneOnOnes) {
+  const completed = oneOnOnes.filter((o) => o.completed).length
+  return [
+    { label: 'Completed', value: completed },
+    { label: 'Open', value: oneOnOnes.length - completed },
+  ]
+}
+
+// Goals grouped by status, in the canonical status order.
+export function goalStatusCounts(goals) {
+  return GOAL_STATUSES.map((status) => ({
+    label: status,
+    value: goals.filter((g) => g.status === status).length,
+  }))
 }
 
 // Approved leave days taken per type across the team, vs total entitlement.

@@ -22,13 +22,14 @@ export default function AdminDashboard() {
 
   const loadData = useCallback(async () => {
     setLoading(true)
-    const [users, performance, grievances, recognitions, feedback, leaves] = await Promise.all([
+    const [users, performance, grievances, recognitions, feedback, leaves, goals] = await Promise.all([
       getAllUsers(),
       getAllRecords('performance'),
       getAllRecords('grievances'),
       getAllRecords('recognitions'),
       getAllRecords('feedback'),
       getAllRecords('leaves'),
+      getAllRecords('goals'),
     ])
 
     const employees = users.filter((u) => u.role === 'employee')
@@ -36,7 +37,7 @@ export default function AdminDashboard() {
       buildEmployeeSummary(u, { performance, grievances, recognitions, feedback, leaves }),
     )
     setSummaries(built)
-    setRecords({ performance, grievances, recognitions, feedback, leaves })
+    setRecords({ performance, grievances, recognitions, feedback, leaves, goals })
     setLoading(false)
   }, [])
 

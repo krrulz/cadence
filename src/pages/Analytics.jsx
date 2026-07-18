@@ -12,6 +12,8 @@ import {
   grievanceStatusCounts,
   leaveByType,
   recognitionsByMonth,
+  oneOnOneStatusCounts,
+  goalStatusCounts,
 } from '../lib/analytics.js'
 
 export default function Analytics() {
@@ -20,15 +22,17 @@ export default function Analytics() {
 
   const loadData = useCallback(async () => {
     setLoading(true)
-    const [users, performance, grievances, recognitions, leaves] = await Promise.all([
+    const [users, performance, grievances, recognitions, leaves, oneOnOnes, goals] = await Promise.all([
       getAllUsers(),
       getAllRecords('performance'),
       getAllRecords('grievances'),
       getAllRecords('recognitions'),
       getAllRecords('leaves'),
+      getAllRecords('oneOnOnes'),
+      getAllRecords('goals'),
     ])
     const employees = users.filter((u) => u.role === 'employee')
-    setData({ employees, performance, grievances, recognitions, leaves })
+    setData({ employees, performance, grievances, recognitions, leaves, oneOnOnes, goals })
     setLoading(false)
   }, [])
 
@@ -45,6 +49,8 @@ export default function Analytics() {
       grievanceStatus: grievanceStatusCounts(data.grievances),
       leave: leaveByType(data.employees, data.leaves),
       recognitions: recognitionsByMonth(data.recognitions, 6),
+      oneOnOnes: oneOnOneStatusCounts(data.oneOnOnes),
+      goalStatus: goalStatusCounts(data.goals),
     }
   }, [data])
 
@@ -85,6 +91,14 @@ export default function Analytics() {
 
         <Section title="Recognitions (last 6 months)">
           <ColumnChart data={derived.recognitions} />
+        </Section>
+
+        <Section title="1:1 meetings">
+          <DonutChart data={derived.oneOnOnes} colors={['#00965E', '#CBD5E1']} />
+        </Section>
+
+        <Section title="Goals by status">
+          <BarChart data={derived.goalStatus} color="#6B3FA0" />
         </Section>
 
         <div className="lg:col-span-2">

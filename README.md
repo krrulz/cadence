@@ -203,7 +203,7 @@ Leave balance per type = `leaveEntitlements[type] − leaveOpeningTaken[type] �
 - **Goals / OKRs** — collaborative objectives with key results and a progress bar, editable by both the employee and admin (My Dashboard / the Goals tab on the employee detail page).
 - **1:1 meetings** — shared agenda, author-tagged notes and checkable action items per meeting.
 - **PTO calendar** — month grid of the team's approved (and optionally pending) leave, colour-coded per person.
-- **Analytics** (admin) — team-wide charts at `/analytics`: grievance-status donut, review-rating distribution, headcount by department, recognitions over the last 6 months, and leave taken vs entitlement. Dependency-free inline SVG/CSS charts.
+- **Analytics** (admin) — team-wide charts at `/analytics`: grievance-status donut, review-rating distribution, headcount by department, recognitions over the last 6 months, 1:1s completed vs open, goals by status, and leave taken vs entitlement. Dependency-free inline SVG/CSS charts.
 - **Useful Links** — admin-curated bookmarks shown to the whole team at `/links`.
 - **Leave** — employees request (start `Pending`), admin approves/rejects; balances computed client-side.
 
