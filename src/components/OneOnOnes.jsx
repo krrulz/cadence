@@ -13,14 +13,39 @@ import {
   deleteSubRecord,
 } from '../lib/firestoreHelpers.js'
 import { sortByDateDesc } from '../lib/aggregate.js'
+import { sendAlert, getAdminEmails } from '../lib/notify.js'
+import { GOAL_STATUSES } from '../lib/constants.js'
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
 }
 
+// Build a plain-text Minutes of Meeting from a 1:1 and its notes/actions.
+function buildMinutes(oneOnOne, notes, actions, employeeName) {
+  const lines = []
+  lines.push(`1:1 Meeting — ${oneOnOne.title || '1:1'}`)
+  lines.push(`With: ${employeeName || ''}`)
+  lines.push(`Date: ${oneOnOne.date}`)
+  if (oneOnOne.agenda) {
+    lines.push('', 'Agenda:', oneOnOne.agenda)
+  }
+  lines.push('', 'Notes:')
+  if (notes.length) notes.forEach((n) => lines.push(`  • ${n.authorName} (${n.authorRole}): ${n.text}`))
+  else lines.push('  • (none)')
+  lines.push('', 'Action items:')
+  if (actions.length)
+    actions.forEach((a) =>
+      lines.push(`  • [${a.done ? 'x' : ' '}] ${a.text}${a.goalObjective ? `  → Goal: ${a.goalObjective}` : ''}`),
+    )
+  else lines.push('  • (none)')
+  lines.push('', '— Sent from Cadence')
+  return lines.join('\n')
+}
+
 // `viewer` = { uid, name, role: 'admin' | 'employee' }. `canSchedule` gates the
 // "Schedule 1:1" button (admin only); employees contribute to existing ones.
-export default function OneOnOnes({ employeeId, viewer, canSchedule }) {
+// `employeeEmail`/`employeeName` identify the 1:1's employee for the MoM email.
+export default function OneOnOnes({ employeeId, viewer, canSchedule, employeeEmail, employeeName }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [scheduling, setScheduling] = useState(false)
@@ -59,14 +84,23 @@ export default function OneOnOnes({ employeeId, viewer, canSchedule }) {
                 <span className="min-w-0">
                   <span className="font-medium text-slate-800">{o.title || '1:1 Meeting'}</span>
                   <span className="ml-2 text-sm text-slate-500">{o.date}</span>
+                  {o.completed && (
+                    <span className="ml-2 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-800">
+                      ✓ Completed
+                    </span>
+                  )}
                 </span>
                 <span className="text-slate-400">{openId === o.id ? '▲' : '▼'}</span>
               </button>
               {openId === o.id && (
                 <OneOnOnePanel
                   oneOnOne={o}
+                  employeeId={employeeId}
                   viewer={viewer}
+                  employeeEmail={employeeEmail}
+                  employeeName={employeeName}
                   canDelete={canSchedule}
+                  onChanged={load}
                   onDeleted={() => {
                     setOpenId(null)
                     load()
@@ -129,26 +163,35 @@ function ScheduleModal({ employeeId, viewer, onClose, onSaved }) {
   )
 }
 
-// The collaborative detail: a shared agenda, an author-tagged notes stream, and
-// checkable action items. Loads the two subcollections on mount.
-function OneOnOnePanel({ oneOnOne, viewer, canDelete, onDeleted }) {
+// The collaborative detail: a shared agenda, an author-tagged notes stream,
+// checkable action items (optionally linked to a goal's key results), and a
+// completion control that can email the minutes. Loads the two subcollections
+// plus the employee's goals on mount.
+function OneOnOnePanel({ oneOnOne, employeeId, viewer, employeeEmail, employeeName, canDelete, onChanged, onDeleted }) {
   const [notes, setNotes] = useState([])
   const [actions, setActions] = useState([])
+  const [goals, setGoals] = useState([])
   const [agenda, setAgenda] = useState(oneOnOne.agenda || '')
   const [newNote, setNewNote] = useState('')
   const [newAction, setNewAction] = useState('')
+  const [linkGoalId, setLinkGoalId] = useState('') // '' | goalId | '__new__'
+  const [newGoalObjective, setNewGoalObjective] = useState('')
   const [loading, setLoading] = useState(true)
+  const [completing, setCompleting] = useState(false)
+  const [emailMinutes, setEmailMinutes] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [n, a] = await Promise.all([
+    const [n, a, g] = await Promise.all([
       getSubRecords('oneOnOnes', oneOnOne.id, 'notes'),
       getSubRecords('oneOnOnes', oneOnOne.id, 'actions'),
+      getRecordsForEmployee('goals', employeeId),
     ])
     setNotes(sortByDateDesc(n, 'createdAt'))
     setActions([...a].sort((x, y) => (x.createdAt || '').localeCompare(y.createdAt || '')))
+    setGoals(g)
     setLoading(false)
-  }, [oneOnOne.id])
+  }, [oneOnOne.id, employeeId])
 
   useEffect(() => {
     load()
@@ -180,28 +223,100 @@ function OneOnOnePanel({ oneOnOne, viewer, canDelete, onDeleted }) {
 
   async function addAction(e) {
     e.preventDefault()
-    if (!newAction.trim()) return
+    const text = newAction.trim()
+    if (!text) return
+
+    // Optionally map the action to a goal's key results: append it to an
+    // existing goal, or spin up a new goal with this as its first key result.
+    let goalId = ''
+    let goalObjective = ''
+    try {
+      if (linkGoalId === '__new__') {
+        const objective = newGoalObjective.trim() || text
+        const ref = await addRecord('goals', {
+          employeeId,
+          objective,
+          description: '',
+          status: GOAL_STATUSES[1] || 'In Progress',
+          dueDate: '',
+          progress: 0,
+          keyResults: [{ text, done: false }],
+          ownerName: viewer.name || '',
+          createdByUid: viewer.uid || '',
+          createdByRole: viewer.role || '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        goalId = ref.id
+        goalObjective = objective
+      } else if (linkGoalId) {
+        const goal = goals.find((g) => g.id === linkGoalId)
+        if (goal) {
+          const nextKRs = [...(goal.keyResults || []), { text, done: false }]
+          await updateRecord('goals', goal.id, { keyResults: nextKRs, updatedAt: new Date().toISOString() })
+          goalId = goal.id
+          goalObjective = goal.objective
+        }
+      }
+    } catch {
+      // If the goal write fails, still record the action without a link.
+      goalId = ''
+      goalObjective = ''
+    }
+
     await addSubRecord('oneOnOnes', oneOnOne.id, 'actions', {
-      text: newAction.trim(),
+      text,
       owner: viewer.role,
       createdByUid: viewer.uid,
       createdByName: viewer.name,
       done: false,
       createdAt: new Date().toISOString(),
+      ...(goalId ? { goalId, goalObjective } : {}),
     })
     setNewAction('')
+    setLinkGoalId('')
+    setNewGoalObjective('')
     load()
   }
 
   async function toggleAction(item) {
+    const done = !item.done
     // Optimistic — the done-only update is permitted for any participant.
-    setActions((prev) => prev.map((a) => (a.id === item.id ? { ...a, done: !a.done } : a)))
-    await updateSubRecord('oneOnOnes', oneOnOne.id, 'actions', item.id, { done: !item.done })
+    setActions((prev) => prev.map((a) => (a.id === item.id ? { ...a, done } : a)))
+    await updateSubRecord('oneOnOnes', oneOnOne.id, 'actions', item.id, { done })
+    // Keep the mapped key result in sync (best-effort).
+    if (item.goalId) {
+      try {
+        const goal = goals.find((g) => g.id === item.goalId)
+        if (goal?.keyResults) {
+          const nextKRs = goal.keyResults.map((kr) => (kr.text === item.text ? { ...kr, done } : kr))
+          await updateRecord('goals', goal.id, { keyResults: nextKRs, updatedAt: new Date().toISOString() })
+          setGoals((prev) => prev.map((g) => (g.id === goal.id ? { ...g, keyResults: nextKRs } : g)))
+        }
+      } catch {
+        /* ignore sync failures */
+      }
+    }
   }
 
   async function removeAction(item) {
     await deleteSubRecord('oneOnOnes', oneOnOne.id, 'actions', item.id)
     load()
+  }
+
+  async function completeMeeting() {
+    await updateRecord('oneOnOnes', oneOnOne.id, { completed: true, completedAt: new Date().toISOString() })
+    if (emailMinutes) {
+      const admins = await getAdminEmails()
+      const recipients = [...new Set([employeeEmail, ...admins].filter(Boolean))]
+      sendAlert({
+        to: recipients,
+        subject: `1:1 Minutes — ${employeeName || ''} (${oneOnOne.date})`,
+        text: buildMinutes(oneOnOne, notes, actions, employeeName),
+      })
+    }
+    setCompleting(false)
+    onChanged?.()
   }
 
   async function deleteMeeting() {
@@ -232,7 +347,7 @@ function OneOnOnePanel({ oneOnOne, viewer, canDelete, onDeleted }) {
             <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Action items</p>
             <div className="space-y-1">
               {actions.map((item) => (
-                <div key={item.id} className="flex items-center gap-2 text-sm">
+                <div key={item.id} className="flex flex-wrap items-center gap-2 text-sm">
                   <input
                     type="checkbox"
                     className="h-4 w-4 accent-brand"
@@ -243,6 +358,14 @@ function OneOnOnePanel({ oneOnOne, viewer, canDelete, onDeleted }) {
                   <span className="rounded-full bg-slate-100 px-1.5 text-[10px] uppercase text-slate-500">
                     {item.owner}
                   </span>
+                  {item.goalObjective && (
+                    <span
+                      className="rounded-full bg-accent-100 px-1.5 text-[10px] text-accent-800"
+                      title={`Linked to goal: ${item.goalObjective}`}
+                    >
+                      🎯 {item.goalObjective}
+                    </span>
+                  )}
                   {(item.createdByUid === viewer.uid || viewer.role === 'admin') && (
                     <button
                       type="button"
@@ -257,16 +380,43 @@ function OneOnOnePanel({ oneOnOne, viewer, canDelete, onDeleted }) {
               ))}
               {actions.length === 0 && <p className="text-sm text-slate-400">No action items.</p>}
             </div>
-            <form onSubmit={addAction} className="mt-2 flex gap-2">
-              <input
-                value={newAction}
-                onChange={(e) => setNewAction(e.target.value)}
-                placeholder="Add an action item…"
-                className="input text-sm"
-              />
-              <button type="submit" className="btn-secondary text-xs">
-                Add
-              </button>
+
+            <form onSubmit={addAction} className="mt-2 space-y-2">
+              <div className="flex gap-2">
+                <input
+                  value={newAction}
+                  onChange={(e) => setNewAction(e.target.value)}
+                  placeholder="Add an action item…"
+                  className="input text-sm"
+                />
+                <button type="submit" className="btn-secondary text-xs">
+                  Add
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="text-xs text-slate-500">Link to goal:</label>
+                <select
+                  value={linkGoalId}
+                  onChange={(e) => setLinkGoalId(e.target.value)}
+                  className="input max-w-[220px] py-1 text-sm"
+                >
+                  <option value="">No goal link</option>
+                  {goals.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.objective}
+                    </option>
+                  ))}
+                  <option value="__new__">＋ New goal…</option>
+                </select>
+                {linkGoalId === '__new__' && (
+                  <input
+                    value={newGoalObjective}
+                    onChange={(e) => setNewGoalObjective(e.target.value)}
+                    placeholder="New goal objective (defaults to action text)"
+                    className="input flex-1 py-1 text-sm"
+                  />
+                )}
+              </div>
             </form>
           </div>
 
@@ -307,6 +457,39 @@ function OneOnOnePanel({ oneOnOne, viewer, canDelete, onDeleted }) {
                 Add
               </button>
             </form>
+          </div>
+
+          {/* Completion + minutes email */}
+          <div className="border-t border-slate-100 pt-3">
+            {oneOnOne.completed ? (
+              <p className="text-xs font-medium text-green-700">
+                ✓ Completed{oneOnOne.completedAt ? ` on ${oneOnOne.completedAt.slice(0, 10)}` : ''}
+              </p>
+            ) : completing ? (
+              <div className="space-y-2 rounded-md bg-slate-50 p-3">
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-brand"
+                    checked={emailMinutes}
+                    onChange={(e) => setEmailMinutes(e.target.checked)}
+                  />
+                  Email the minutes to participants (employee + managers)
+                </label>
+                <div className="flex gap-2">
+                  <button type="button" onClick={completeMeeting} className="btn-primary text-xs">
+                    Confirm complete
+                  </button>
+                  <button type="button" onClick={() => setCompleting(false)} className="btn-secondary text-xs">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setCompleting(true)} className="btn-primary text-xs">
+                ✓ Complete &amp; email minutes
+              </button>
+            )}
           </div>
 
           {canDelete && (

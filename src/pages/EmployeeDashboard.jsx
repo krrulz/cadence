@@ -137,6 +137,8 @@ export default function EmployeeDashboard() {
           employeeId={user.uid}
           viewer={{ uid: user.uid, name: profile.name, role: 'employee' }}
           canSchedule={false}
+          employeeEmail={profile.email}
+          employeeName={profile.name}
         />
 
         <Section title="My Grievances" onAdd={() => setModal('grievance')} addLabel="+ Raise Grievance">

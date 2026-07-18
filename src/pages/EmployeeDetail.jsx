@@ -202,6 +202,8 @@ export default function EmployeeDetail() {
             employeeId={uid}
             viewer={{ uid: adminProfile?.id, name: adminProfile?.name, role: 'admin' }}
             canSchedule
+            employeeEmail={employee.email}
+            employeeName={employee.name}
           />
         )}
       </div>
