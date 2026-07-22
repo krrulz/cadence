@@ -1,7 +1,7 @@
 export function LabeledInput({ label, required, ...props }) {
   return (
     <label className="block text-sm">
-      <span className="font-medium text-slate-700">
+      <span className="font-medium text-ink">
         {label} {required && <span className="text-red-500">*</span>}
       </span>
       <input
@@ -17,7 +17,7 @@ export function LabeledInput({ label, required, ...props }) {
 export function LabeledTextarea({ label, required, value, onChange }) {
   return (
     <label className="block text-sm">
-      <span className="font-medium text-slate-700">
+      <span className="font-medium text-ink">
         {label} {required && <span className="text-red-500">*</span>}
       </span>
       <textarea

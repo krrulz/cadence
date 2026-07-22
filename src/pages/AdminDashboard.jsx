@@ -7,11 +7,15 @@ import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import AddEmployeeModal from '../components/AddEmployeeModal.jsx'
 import ReportModal from '../components/ReportModal.jsx'
 import Avatar from '../components/Avatar.jsx'
+import Section from '../components/Section.jsx'
+import DataTable from '../components/DataTable.jsx'
+import { useAuth } from '../contexts/AuthContext.jsx'
 import { getAllUsers, getAllRecords } from '../lib/firestoreHelpers.js'
-import { buildEmployeeSummary } from '../lib/aggregate.js'
+import { buildEmployeeSummary, sortByDateDesc } from '../lib/aggregate.js'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [summaries, setSummaries] = useState([])
   const [records, setRecords] = useState({})
@@ -87,6 +91,14 @@ export default function AdminDashboard() {
     const flagged = summaries.filter((s) => !(s.flags.length === 1 && s.flags[0] === 'OK')).length
     return { teamSize, totalOpenGrievances, avgRating, flagged }
   }, [summaries])
+
+  // Recognitions addressed to the admin themselves. The roster only lists
+  // employees, so without this an employee-given recognition to the admin has
+  // nowhere to show and would be invisible.
+  const myRecognitions = useMemo(
+    () => sortByDateDesc((records.recognitions || []).filter((r) => r.employeeId === user?.uid), 'date'),
+    [records.recognitions, user?.uid],
+  )
 
   if (loading) {
     return (
@@ -207,6 +219,23 @@ export default function AdminDashboard() {
           </table>
         </div>
       </div>
+
+      {myRecognitions.length > 0 && (
+        <div className="mt-6">
+          <Section title="Recognitions for you">
+            <DataTable
+              headers={['Date', 'Type', 'Description', 'From']}
+              rows={myRecognitions.map((r) => [
+                r.date,
+                r.type,
+                r.description,
+                `${r.givenBy}${r.source === 'peer' ? ' (peer)' : ''}`,
+              ])}
+              emptyText="No recognitions yet."
+            />
+          </Section>
+        </div>
+      )}
 
       {showAddModal && (
         <AddEmployeeModal onClose={() => setShowAddModal(false)} onCreated={loadData} />

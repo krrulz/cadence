@@ -30,12 +30,12 @@ export default function ReportModal({ scopeEmployees, records, onClose }) {
   return (
     <Modal title="Download Report" onClose={onClose}>
       <div className="space-y-4">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-ink-muted">
           {scopeEmployees.length} employee{scopeEmployees.length === 1 ? '' : 's'} in scope.
         </p>
 
         <label className="block text-sm">
-          <span className="font-medium text-slate-700">Section</span>
+          <span className="font-medium text-ink">Section</span>
           <select value={section} onChange={(e) => setSection(e.target.value)} className="input mt-1">
             {Object.entries(REPORTS).map(([key, def]) => (
               <option key={key} value={key}>
@@ -45,7 +45,7 @@ export default function ReportModal({ scopeEmployees, records, onClose }) {
           </select>
         </label>
 
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-ink-muted">
           {matching.length} record{matching.length === 1 ? '' : 's'} to export.
         </p>
 

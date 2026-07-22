@@ -72,8 +72,8 @@ export default function Links() {
     <Layout>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Useful Links</h1>
-          <p className="text-sm text-slate-500">Shared bookmarks for the team.</p>
+          <h1 className="text-xl font-semibold text-ink">Useful Links</h1>
+          <p className="text-sm text-ink-muted">Shared bookmarks for the team.</p>
         </div>
         {isAdmin && (
           <button type="button" onClick={() => setModal({ type: 'add' })} className="btn-primary">
@@ -83,14 +83,14 @@ export default function Links() {
       </div>
 
       {grouped.length === 0 ? (
-        <div className="mt-6 card text-center text-slate-400">
+        <div className="mt-6 card text-center text-ink-faint">
           No links yet.{isAdmin ? ' Use “Add Link” to create the first one.' : ''}
         </div>
       ) : (
         <div className="mt-6 space-y-6">
           {grouped.map(([category, items]) => (
             <Section key={category} title={category}>
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-white/5">
                 {items.map((b) => (
                   <li key={b.id} className="flex items-center justify-between gap-3 py-2">
                     <div className="min-w-0">
@@ -98,28 +98,28 @@ export default function Links() {
                         href={normalizeUrl(b.url)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-medium text-brand hover:underline"
+                        className="font-medium text-mint hover:underline"
                       >
                         {b.title}
                       </a>
                       {b.description && (
-                        <p className="truncate text-sm text-slate-500">{b.description}</p>
+                        <p className="truncate text-sm text-ink-muted">{b.description}</p>
                       )}
-                      <p className="truncate text-xs text-slate-400">{hostOf(b.url)}</p>
+                      <p className="truncate text-xs text-ink-faint">{hostOf(b.url)}</p>
                     </div>
                     {isAdmin && (
                       <div className="flex shrink-0 gap-3 text-sm">
                         <button
                           type="button"
                           onClick={() => setModal({ type: 'edit', data: b })}
-                          className="text-slate-500 hover:text-brand hover:underline"
+                          className="text-ink-muted hover:text-mint hover:underline"
                         >
                           Edit
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDelete(b.id)}
-                          className="text-slate-400 hover:text-red-600 hover:underline"
+                          className="text-ink-faint hover:text-rose-400 hover:underline"
                         >
                           Remove
                         </button>

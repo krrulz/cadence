@@ -97,7 +97,7 @@ export default function ComposeEmailModal({ employee, items, onClose }) {
     <Modal title="Compose Email" onClose={onClose} wide>
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-muted">
             {items.length} item{items.length === 1 ? '' : 's'} selected.
           </p>
           <div className="flex gap-2">
@@ -110,10 +110,10 @@ export default function ComposeEmailModal({ employee, items, onClose }) {
           </div>
         </div>
 
-        {aiError && <p className="rounded-md bg-red-50 p-2 text-sm text-red-700">{aiError}</p>}
+        {aiError && <p className="rounded-md bg-rose-500/10 p-2 text-sm text-rose-300">{aiError}</p>}
 
         <label className="block text-sm">
-          <span className="font-medium text-slate-700">To</span>
+          <span className="font-medium text-ink">To</span>
           <input
             type="email"
             value={to}
@@ -124,12 +124,12 @@ export default function ComposeEmailModal({ employee, items, onClose }) {
         </label>
 
         <label className="block text-sm">
-          <span className="font-medium text-slate-700">Subject</span>
+          <span className="font-medium text-ink">Subject</span>
           <input value={subject} onChange={(e) => setSubject(e.target.value)} className="input mt-1" />
         </label>
 
         <label className="block text-sm">
-          <span className="font-medium text-slate-700">Body</span>
+          <span className="font-medium text-ink">Body</span>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
@@ -138,7 +138,7 @@ export default function ComposeEmailModal({ employee, items, onClose }) {
           />
         </label>
 
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-ink-faint">
           AI drafts are a starting point — read before sending. Nothing is sent anywhere until you click below.
         </p>
 

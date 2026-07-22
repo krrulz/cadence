@@ -46,7 +46,7 @@ export default function ChangePasswordModal({ onClose }) {
     <Modal title="Change password" onClose={onClose}>
       {done ? (
         <div className="space-y-4">
-          <p className="text-sm text-slate-600">✓ Your password has been updated.</p>
+          <p className="text-sm text-ink-muted">✓ Your password has been updated.</p>
           <div className="flex justify-end">
             <button type="button" onClick={onClose} className="btn-primary">
               Done
@@ -59,12 +59,12 @@ export default function ChangePasswordModal({ onClose }) {
           <Field label="New password" value={next} onChange={setNext} show={show} autoComplete="new-password" />
           <Field label="Confirm new password" value={confirm} onChange={setConfirm} show={show} autoComplete="new-password" />
 
-          <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" className="h-4 w-4 accent-brand" checked={show} onChange={(e) => setShow(e.target.checked)} />
+          <label className="flex items-center gap-2 text-sm text-ink-muted">
+            <input type="checkbox" className="h-4 w-4 accent-mint" checked={show} onChange={(e) => setShow(e.target.checked)} />
             Show passwords
           </label>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-rose-400">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary">
@@ -83,7 +83,7 @@ export default function ChangePasswordModal({ onClose }) {
 function Field({ label, value, onChange, show, autoComplete }) {
   return (
     <label className="block text-sm">
-      <span className="font-medium text-slate-700">{label}</span>
+      <span className="font-medium text-ink">{label}</span>
       <input
         type={show ? 'text' : 'password'}
         required

@@ -63,9 +63,9 @@ export default function Goals({ employeeId, viewer }) {
   return (
     <Section title="Goals & OKRs" onAdd={() => setModal({ type: 'add' })} addLabel="+ Add Goal">
       {loading ? (
-        <p className="text-sm text-slate-400">Loading goals…</p>
+        <p className="text-sm text-ink-faint">Loading goals…</p>
       ) : sorted.length === 0 ? (
-        <p className="text-sm text-slate-400">No goals set yet.</p>
+        <p className="text-sm text-ink-faint">No goals set yet.</p>
       ) : (
         <ul className="space-y-4">
           {sorted.map((goal) => (
@@ -96,31 +96,31 @@ export default function Goals({ employeeId, viewer }) {
 function GoalCard({ goal, onToggleKR, onEdit, onDelete }) {
   const progress = goalProgress(goal)
   return (
-    <li className="rounded-lg border border-slate-200 p-4">
+    <li className="rounded-lg border border-surface-border p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h4 className="font-medium text-slate-800">{goal.objective}</h4>
+            <h4 className="font-medium text-ink">{goal.objective}</h4>
             <StatusBadge label={goal.status} />
           </div>
-          {goal.description && <p className="mt-1 text-sm text-slate-500">{goal.description}</p>}
+          {goal.description && <p className="mt-1 text-sm text-ink-muted">{goal.description}</p>}
         </div>
         <div className="flex shrink-0 gap-3 text-sm">
-          <button type="button" onClick={onEdit} className="text-slate-500 hover:text-brand hover:underline">
+          <button type="button" onClick={onEdit} className="text-ink-muted hover:text-mint hover:underline">
             Edit
           </button>
-          <button type="button" onClick={onDelete} className="text-slate-400 hover:text-red-600 hover:underline">
+          <button type="button" onClick={onDelete} className="text-ink-faint hover:text-rose-400 hover:underline">
             Delete
           </button>
         </div>
       </div>
 
       <div className="mt-3">
-        <div className="flex items-center justify-between text-xs text-slate-500">
+        <div className="flex items-center justify-between text-xs text-ink-muted">
           <span>Progress</span>
-          <span className="font-medium text-slate-700">{progress}%</span>
+          <span className="font-medium text-ink">{progress}%</span>
         </div>
-        <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+        <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-white/10">
           <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${progress}%` }} />
         </div>
       </div>
@@ -131,19 +131,19 @@ function GoalCard({ goal, onToggleKR, onEdit, onDelete }) {
             <li key={i} className="flex items-start gap-2 text-sm">
               <input
                 type="checkbox"
-                className="mt-0.5 h-4 w-4 accent-brand"
+                className="mt-0.5 h-4 w-4 accent-mint"
                 checked={!!kr.done}
                 onChange={() => onToggleKR(i)}
                 aria-label={`Toggle key result: ${kr.text}`}
               />
-              <span className={kr.done ? 'text-slate-400 line-through' : 'text-slate-700'}>{kr.text}</span>
+              <span className={kr.done ? 'text-ink-faint line-through' : 'text-ink'}>{kr.text}</span>
             </li>
           ))}
         </ul>
       )}
 
       {goal.dueDate && (
-        <p className="mt-3 text-xs text-slate-400">
+        <p className="mt-3 text-xs text-ink-faint">
           Due {goal.dueDate}
           {goal.ownerName ? ` · set by ${goal.ownerName}` : ''}
         </p>
@@ -227,7 +227,7 @@ function GoalModal({ goal, employeeId, viewer, onClose, onSaved }) {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">Status</span>
+            <span className="font-medium text-ink">Status</span>
             <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} className="input mt-1">
               {GOAL_STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -240,15 +240,15 @@ function GoalModal({ goal, employeeId, viewer, onClose, onSaved }) {
         </div>
 
         {blockedComplete && (
-          <p className="rounded-md bg-amber-50 p-2 text-sm text-amber-800">
+          <p className="rounded-md bg-amber-500/10 p-2 text-sm text-amber-300">
             {openKRs.length} key result{openKRs.length === 1 ? '' : 's'} still open — tick them all off before marking
             this goal <strong>Completed</strong>.
           </p>
         )}
 
         <div>
-          <span className="text-sm font-medium text-slate-700">Key results</span>
-          <p className="text-xs text-slate-400">Progress is calculated from these. Leave empty to set progress manually.</p>
+          <span className="text-sm font-medium text-ink">Key results</span>
+          <p className="text-xs text-ink-faint">Progress is calculated from these. Leave empty to set progress manually.</p>
           <div className="mt-2 space-y-2">
             {keyResults.map((kr, i) => (
               <div key={i} className="flex items-center gap-2">
@@ -262,7 +262,7 @@ function GoalModal({ goal, employeeId, viewer, onClose, onSaved }) {
                 <button
                   type="button"
                   onClick={() => removeKR(i)}
-                  className="shrink-0 rounded-md px-2 py-1 text-slate-400 hover:text-red-600"
+                  className="shrink-0 rounded-md px-2 py-1 text-ink-faint hover:text-rose-400"
                   aria-label="Remove key result"
                 >
                   ✕
@@ -270,14 +270,14 @@ function GoalModal({ goal, employeeId, viewer, onClose, onSaved }) {
               </div>
             ))}
           </div>
-          <button type="button" onClick={addKR} className="mt-2 text-sm text-brand hover:underline">
+          <button type="button" onClick={addKR} className="mt-2 text-sm text-mint hover:underline">
             + Add key result
           </button>
         </div>
 
         {!hasKRs && (
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">Progress ({form.progress}%)</span>
+            <span className="font-medium text-ink">Progress ({form.progress}%)</span>
             <input
               type="range"
               min="0"
@@ -285,7 +285,7 @@ function GoalModal({ goal, employeeId, viewer, onClose, onSaved }) {
               step="5"
               value={form.progress}
               onChange={(e) => setForm((f) => ({ ...f, progress: e.target.value }))}
-              className="mt-1 w-full accent-brand"
+              className="mt-1 w-full accent-mint"
             />
           </label>
         )}

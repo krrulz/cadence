@@ -44,36 +44,36 @@ export default function CommentThread({ parentCollection, parentId, viewer }) {
 
   return (
     <div>
-      <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Comments</p>
+      <p className="mb-1 text-xs font-medium uppercase tracking-wide text-ink-muted">Comments</p>
       {loading ? (
-        <p className="text-sm text-slate-400">Loading…</p>
+        <p className="text-sm text-ink-faint">Loading…</p>
       ) : (
         <div className="space-y-2">
           {comments.map((c) => (
-            <div key={c.id} className="rounded-md bg-slate-50 p-2 text-sm">
+            <div key={c.id} className="rounded-md bg-white/5 p-2 text-sm">
               <div className="mb-0.5 flex items-center justify-between gap-2">
-                <span className="text-xs font-medium text-slate-600">
+                <span className="text-xs font-medium text-ink-muted">
                   {c.authorName}
-                  <span className="ml-1 text-slate-400">· {c.authorRole}</span>
+                  <span className="ml-1 text-ink-faint">· {c.authorRole}</span>
                   {c.createdAt && (
-                    <span className="ml-1 text-slate-400">· {c.createdAt.slice(0, 10)}</span>
+                    <span className="ml-1 text-ink-faint">· {c.createdAt.slice(0, 10)}</span>
                   )}
                 </span>
                 {(c.authorUid === viewer.uid || viewer.role === 'admin') && (
                   <button
                     type="button"
                     onClick={() => removeComment(c)}
-                    className="text-xs text-slate-400 hover:text-red-600"
+                    className="text-xs text-ink-faint hover:text-rose-400"
                     aria-label="Delete comment"
                   >
                     ✕
                   </button>
                 )}
               </div>
-              <p className="whitespace-pre-wrap text-slate-700">{c.text}</p>
+              <p className="whitespace-pre-wrap text-ink">{c.text}</p>
             </div>
           ))}
-          {comments.length === 0 && <p className="text-sm text-slate-400">No comments yet.</p>}
+          {comments.length === 0 && <p className="text-sm text-ink-faint">No comments yet.</p>}
         </div>
       )}
       <form onSubmit={addComment} className="mt-2 flex gap-2">

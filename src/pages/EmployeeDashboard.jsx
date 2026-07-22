@@ -96,8 +96,8 @@ export default function EmployeeDashboard() {
         <div className="flex items-center gap-4">
           <Avatar name={profile.name} colorKey={user.uid} size="lg" />
           <div className="min-w-0">
-            <h1 className="text-xl font-semibold text-slate-900">{profile.name}</h1>
-            <p className="text-sm text-slate-500">
+            <h1 className="text-xl font-semibold text-ink">{profile.name}</h1>
+            <p className="text-sm text-ink-muted">
               {profile.department} · Joined {profile.dateOfJoining} · Manager {profile.managerName || '—'}
             </p>
           </div>
@@ -114,9 +114,9 @@ export default function EmployeeDashboard() {
             { label: 'Open grievances', value: records.grievances.filter((g) => g.status !== 'Resolved').length },
             { label: 'Leave balance', value: leaveBalance ? leaveBalance.total : '—' },
           ].map((c) => (
-            <div key={c.label} className="rounded-lg bg-slate-50 px-3 py-2 text-center">
-              <p className="text-lg font-semibold text-slate-800">{c.value}</p>
-              <p className="text-xs text-slate-500">{c.label}</p>
+            <div key={c.label} className="rounded-lg bg-white/5 px-3 py-2 text-center">
+              <p className="text-lg font-semibold text-ink">{c.value}</p>
+              <p className="text-xs text-ink-muted">{c.label}</p>
             </div>
           ))}
         </div>
@@ -180,12 +180,12 @@ export default function EmployeeDashboard() {
             {leaveBalance &&
               Object.entries(leaveBalance.byType).map(([type, v]) => (
                 <div key={type} className="card">
-                  <p className="text-xs font-medium text-slate-500">{type}</p>
-                  <p className="mt-1 text-lg font-semibold text-brand">{v.balance}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs font-medium text-ink-muted">{type}</p>
+                  <p className="mt-1 text-lg font-semibold text-mint">{v.balance}</p>
+                  <p className="text-xs text-ink-faint">
                     {v.taken} taken / {v.entitlement} entitled
                   </p>
-                  {v.carryOver > 0 && <p className="text-xs text-slate-400">+{v.carryOver} carried over</p>}
+                  {v.carryOver > 0 && <p className="text-xs text-ink-faint">+{v.carryOver} carried over</p>}
                 </div>
               ))}
           </div>
@@ -195,7 +195,7 @@ export default function EmployeeDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+                <tr className="border-b border-surface-border text-xs uppercase tracking-wide text-ink-muted">
                   <th className="py-2 pr-4">Type</th>
                   <th className="py-2 pr-4">From</th>
                   <th className="py-2 pr-4">To</th>
@@ -206,7 +206,7 @@ export default function EmployeeDashboard() {
               </thead>
               <tbody>
                 {sortByDateDesc(records.leaves, 'dateFrom').map((r) => (
-                  <tr key={r.id} className="border-b border-slate-100">
+                  <tr key={r.id} className="border-b border-white/5">
                     <td className="py-2 pr-4">{r.leaveType}</td>
                     <td className="py-2 pr-4">{r.dateFrom}</td>
                     <td className="py-2 pr-4">{r.dateTo}</td>
@@ -214,12 +214,12 @@ export default function EmployeeDashboard() {
                     <td className="py-2 pr-4">
                       <StatusBadge label={r.status} />
                     </td>
-                    <td className="py-2 pr-4 text-slate-500">{r.approvedBy || '—'}</td>
+                    <td className="py-2 pr-4 text-ink-muted">{r.approvedBy || '—'}</td>
                   </tr>
                 ))}
                 {records.leaves.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-slate-400">
+                    <td colSpan={6} className="py-6 text-center text-ink-faint">
                       No leave requests yet.
                     </td>
                   </tr>
@@ -283,7 +283,7 @@ function RecognitionsPanel({ received, given }) {
 
   return (
     <div>
-      <div className="mb-3 flex gap-1 border-b border-slate-200">
+      <div className="mb-3 flex gap-1 border-b border-surface-border">
         {[
           { key: 'received', label: 'Received' },
           { key: 'given', label: 'Given by you' },
@@ -293,7 +293,7 @@ function RecognitionsPanel({ received, given }) {
             type="button"
             onClick={() => setView(v.key)}
             className={`px-3 py-1.5 text-sm font-medium ${
-              view === v.key ? 'border-b-2 border-brand text-brand' : 'text-slate-500 hover:text-slate-700'
+              view === v.key ? 'border-b-2 border-brand text-mint' : 'text-ink-muted hover:text-ink'
             }`}
           >
             {v.label}
@@ -354,7 +354,7 @@ function GiveRecognitionForm({ giverUid, giverName, onClose, onSaved }) {
     <Modal title="Give Recognition" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block text-sm">
-          <span className="font-medium text-slate-700">Teammate</span>
+          <span className="font-medium text-ink">Teammate</span>
           <select
             required
             value={recipientId}
@@ -371,7 +371,7 @@ function GiveRecognitionForm({ giverUid, giverName, onClose, onSaved }) {
           </select>
         </label>
         <label className="block text-sm">
-          <span className="font-medium text-slate-700">Type</span>
+          <span className="font-medium text-ink">Type</span>
           <select value={type} onChange={(e) => setType(e.target.value)} className="input mt-1">
             {PEER_RECOGNITION_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -455,7 +455,7 @@ function GrievanceForm({ employeeId, requesterName, onClose, onSaved }) {
     <Modal title="Raise a Grievance" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block text-sm">
-          <span className="font-medium text-slate-700">Category</span>
+          <span className="font-medium text-ink">Category</span>
           <select value={category} onChange={(e) => setCategory(e.target.value)} className="input mt-1">
             {GRIEVANCE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -515,7 +515,7 @@ function LeaveForm({ employeeId, requesterName, holidays = [], onClose, onSaved 
     <Modal title="Request Leave" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block text-sm">
-          <span className="font-medium text-slate-700">Leave Type</span>
+          <span className="font-medium text-ink">Leave Type</span>
           <select value={leaveType} onChange={(e) => setLeaveType(e.target.value)} className="input mt-1">
             {LEAVE_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -532,16 +532,16 @@ function LeaveForm({ employeeId, requesterName, holidays = [], onClose, onSaved 
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              className="h-4 w-4 accent-brand"
+              className="h-4 w-4 accent-mint"
               checked={halfDay}
               onChange={(e) => setHalfDay(e.target.checked)}
             />
-            <span className="text-slate-700">Half day</span>
+            <span className="text-ink">Half day</span>
           </label>
         )}
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-ink-muted">
           Working days (excl. weekends &amp; holidays):{' '}
-          <span className="font-medium text-slate-700">{numDays}</span>
+          <span className="font-medium text-ink">{numDays}</span>
         </p>
         <FormActions submitting={submitting || numDays === 0} onCancel={onClose} submitLabel="Submit" />
       </form>

@@ -64,18 +64,18 @@ export default function AddEmployeeModal({ onClose, onCreated }) {
 
   return (
     <Modal title="Add Employee" onClose={onClose} wide>
-      <div className="mb-4 inline-flex rounded-full border border-slate-300 p-0.5 text-sm">
+      <div className="mb-4 inline-flex rounded-full border border-surface-border p-0.5 text-sm">
         <button
           type="button"
           onClick={() => setMode('single')}
-          className={`rounded-full px-3 py-1 font-medium ${mode === 'single' ? 'bg-brand text-white' : 'text-slate-600 hover:text-slate-900'}`}
+          className={`rounded-full px-3 py-1 font-medium ${mode === 'single' ? 'bg-brand text-white' : 'text-ink-muted hover:text-ink'}`}
         >
           Single
         </button>
         <button
           type="button"
           onClick={() => setMode('bulk')}
-          className={`rounded-full px-3 py-1 font-medium ${mode === 'bulk' ? 'bg-brand text-white' : 'text-slate-600 hover:text-slate-900'}`}
+          className={`rounded-full px-3 py-1 font-medium ${mode === 'bulk' ? 'bg-brand text-white' : 'text-ink-muted hover:text-ink'}`}
         >
           Bulk (CSV)
         </button>
@@ -168,7 +168,7 @@ function SingleAddForm({ onClose, onCreated }) {
       </div>
 
       <div>
-        <p className="mb-2 text-sm font-medium text-slate-700">Leave Entitlements (days/year)</p>
+        <p className="mb-2 text-sm font-medium text-ink">Leave Entitlements (days/year)</p>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {LEAVE_TYPES.map((type) => (
             <Field key={type} label={type}>
@@ -184,7 +184,7 @@ function SingleAddForm({ onClose, onCreated }) {
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-rose-400">{error}</p>}
 
       <div className="flex justify-end gap-2 pt-2">
         <button type="button" onClick={onClose} className="btn-secondary">
@@ -265,32 +265,32 @@ function BulkUploadPanel({ onClose, onCreated }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
+      <div className="rounded-md bg-white/5 p-3 text-sm text-ink-muted">
         <p className="mb-2">
-          Upload a CSV with columns <code className="rounded bg-slate-200 px-1 py-0.5">name, email, password, department,
+          Upload a CSV with columns <code className="rounded bg-white/10 px-1 py-0.5">name, email, password, department,
           managerName, dateOfJoining</code>. Every row creates an <strong>employee</strong> account with the standard leave
           entitlements (12/10/15/5) — there's no per-row entitlement editing yet.
         </p>
         <button
           type="button"
           onClick={() => downloadTextFile('employee-bulk-upload-template.csv', BULK_UPLOAD_TEMPLATE)}
-          className="text-brand hover:underline"
+          className="text-mint hover:underline"
         >
           Download CSV template
         </button>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-700">CSV file</label>
+        <label className="block text-sm font-medium text-ink">CSV file</label>
         <input type="file" accept=".csv,text/csv" onChange={handleFile} className="input mt-1" disabled={processing} />
-        {fileName && <p className="mt-1 text-xs text-slate-500">{fileName}</p>}
+        {fileName && <p className="mt-1 text-xs text-ink-muted">{fileName}</p>}
       </div>
 
       {rows.length > 0 && (
-        <div className="max-h-64 overflow-y-auto rounded-md border border-slate-200">
+        <div className="max-h-64 overflow-y-auto rounded-md border border-surface-border">
           <table className="w-full text-left text-sm">
-            <thead className="sticky top-0 bg-slate-50">
-              <tr className="text-xs uppercase tracking-wide text-slate-500">
+            <thead className="sticky top-0 bg-white/5">
+              <tr className="text-xs uppercase tracking-wide text-ink-muted">
                 <th className="px-3 py-2">Name</th>
                 <th className="px-3 py-2">Email</th>
                 <th className="px-3 py-2">Department</th>
@@ -299,7 +299,7 @@ function BulkUploadPanel({ onClose, onCreated }) {
             </thead>
             <tbody>
               {rows.map((r, i) => (
-                <tr key={i} className="border-t border-slate-100">
+                <tr key={i} className="border-t border-white/5">
                   <td className="px-3 py-1.5">{r.name || '—'}</td>
                   <td className="px-3 py-1.5">{r.email || '—'}</td>
                   <td className="px-3 py-1.5">{r.department || '—'}</td>
@@ -314,7 +314,7 @@ function BulkUploadPanel({ onClose, onCreated }) {
       )}
 
       {rows.length > 0 && (
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-ink-muted">
           {validRows.length} of {rows.length} rows ready to upload.
           {done && ` ${createdCount} created, ${failedCount} failed.`}
         </p>
@@ -340,17 +340,17 @@ function BulkUploadPanel({ onClose, onCreated }) {
 }
 
 function RowStatus({ row }) {
-  if (row.status === 'created') return <span className="text-brand">Created</span>
-  if (row.status === 'creating') return <span className="text-slate-500">Creating…</span>
-  if (row.status === 'failed') return <span className="text-red-600">Failed: {row.error}</span>
-  if (row.error) return <span className="text-red-600">{row.error}</span>
-  return <span className="text-slate-400">Ready</span>
+  if (row.status === 'created') return <span className="text-mint">Created</span>
+  if (row.status === 'creating') return <span className="text-ink-muted">Creating…</span>
+  if (row.status === 'failed') return <span className="text-rose-400">Failed: {row.error}</span>
+  if (row.error) return <span className="text-rose-400">{row.error}</span>
+  return <span className="text-ink-faint">Ready</span>
 }
 
 function Field({ label, required, children }) {
   return (
     <label className="block text-sm">
-      <span className="font-medium text-slate-700">
+      <span className="font-medium text-ink">
         {label} {required && <span className="text-red-500">*</span>}
       </span>
       <div className="mt-1">{children}</div>
