@@ -1,38 +1,44 @@
+// Dark-theme translucent badges. Grouped by semantic colour so labels share a
+// consistent language across grievances, leave, goals, SLA and attention flags.
+const GREEN = 'bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-500/30'
+const AMBER = 'bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-500/30'
+const RED = 'bg-rose-500/15 text-rose-300 ring-1 ring-inset ring-rose-500/30'
+const NEUTRAL = 'bg-white/10 text-ink-muted ring-1 ring-inset ring-white/15'
+
 const STYLES = {
   // Grievance statuses
-  Open: 'bg-red-100 text-red-800',
-  'In Progress': 'bg-amber-100 text-amber-800',
-  Resolved: 'bg-green-100 text-green-800',
+  Open: RED,
+  'In Progress': AMBER,
+  Resolved: GREEN,
   // Leave statuses
-  Pending: 'bg-amber-100 text-amber-800',
-  Approved: 'bg-green-100 text-green-800',
-  Rejected: 'bg-red-100 text-red-800',
+  Pending: AMBER,
+  Approved: GREEN,
+  Rejected: RED,
   // Grievance SLA states
-  'On Track': 'bg-green-100 text-green-800',
-  'Due Soon': 'bg-amber-100 text-amber-800',
-  Overdue: 'bg-red-100 text-red-800',
+  'On Track': GREEN,
+  'Due Soon': AMBER,
+  Overdue: RED,
   // Grievance priorities
-  High: 'bg-red-100 text-red-800',
-  Medium: 'bg-amber-100 text-amber-800',
-  Low: 'bg-slate-200 text-slate-700',
-  // Goal statuses ('In Progress' shared with grievances above)
-  'Not Started': 'bg-slate-200 text-slate-700',
-  'At Risk': 'bg-red-100 text-red-800',
-  Completed: 'bg-green-100 text-green-800',
+  High: RED,
+  Medium: AMBER,
+  Low: NEUTRAL,
+  // Goal statuses
+  'Not Started': NEUTRAL,
+  Completed: GREEN,
   // Attention flags
-  'Low Performance': 'bg-red-100 text-red-800',
-  'Grievance Open': 'bg-red-100 text-red-800',
-  'Feedback Overdue': 'bg-amber-100 text-amber-800',
-  'Low Leave Balance': 'bg-amber-100 text-amber-800',
-  'No Data': 'bg-slate-200 text-slate-700',
-  OK: 'bg-green-100 text-green-800',
+  'Low Performance': RED,
+  'Grievance Open': RED,
+  'Feedback Overdue': AMBER,
+  'Low Leave Balance': AMBER,
+  'No Data': NEUTRAL,
+  OK: GREEN,
 }
 
 export default function StatusBadge({ label, className = '' }) {
-  const style = STYLES[label] || 'bg-slate-200 text-slate-700'
+  const style = STYLES[label] || NEUTRAL
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${style} ${className}`}
+      className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${style} ${className}`}
     >
       {label}
     </span>
