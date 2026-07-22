@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import ChangePasswordModal from './ChangePasswordModal.jsx'
 
 const NAV = [
   { to: '/', label: 'Dashboard', adminOnly: true, end: true },
@@ -11,6 +13,7 @@ const NAV = [
 
 export default function Layout({ children }) {
   const { profile, isAdmin, logout } = useAuth()
+  const [showChangePassword, setShowChangePassword] = useState(false)
 
   const links = NAV.filter((l) => {
     if (l.adminOnly) return isAdmin
@@ -49,6 +52,13 @@ export default function Layout({ children }) {
             </span>
             <button
               type="button"
+              onClick={() => setShowChangePassword(true)}
+              className="shrink-0 rounded-md bg-white/10 px-3 py-1.5 font-medium hover:bg-white/20"
+            >
+              Password
+            </button>
+            <button
+              type="button"
               onClick={logout}
               className="shrink-0 rounded-md bg-white/10 px-3 py-1.5 font-medium hover:bg-white/20"
             >
@@ -58,6 +68,7 @@ export default function Layout({ children }) {
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      {showChangePassword && <ChangePasswordModal onClose={() => setShowChangePassword(false)} />}
     </div>
   )
 }

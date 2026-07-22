@@ -9,9 +9,18 @@ import PerformanceTimeline from '../components/PerformanceTimeline.jsx'
 import OneOnOnes from '../components/OneOnOnes.jsx'
 import Goals from '../components/Goals.jsx'
 import GrievanceList from '../components/GrievanceList.jsx'
+import GrievanceEditModal from '../components/GrievanceEditModal.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { getRecordsForEmployee, getRecordsByField, getAllUsers, getAllRecords, addRecord } from '../lib/firestoreHelpers.js'
+import {
+  getRecordsForEmployee,
+  getRecordsByField,
+  getAllUsers,
+  getAllRecords,
+  addRecord,
+  updateRecord,
+  deleteRecord,
+} from '../lib/firestoreHelpers.js'
 import { computeLeaveBalance, sortByDateDesc, latestByDate, isReview } from '../lib/aggregate.js'
 import Avatar from '../components/Avatar.jsx'
 import { computeLeaveDays, holidaySet } from '../lib/leave.js'
@@ -35,6 +44,19 @@ export default function EmployeeDashboard() {
     holidays: [],
   })
   const [modal, setModal] = useState(null) // 'grievance' | 'leave' | 'achievement' | 'recognition'
+  const [editAchievement, setEditAchievement] = useState(null) // achievement record being edited
+  const [editGrievance, setEditGrievance] = useState(null) // grievance record being edited
+
+  async function deleteAchievement(record) {
+    if (!window.confirm('Delete this achievement?')) return
+    await deleteRecord('performance', record.id)
+    loadData()
+  }
+  async function deleteGrievance(record) {
+    if (!window.confirm('Delete this grievance? This cannot be undone.')) return
+    await deleteRecord('grievances', record.id)
+    loadData()
+  }
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -109,6 +131,9 @@ export default function EmployeeDashboard() {
           <PerformanceTimeline
             records={records.performance}
             emptyText="No performance reviews or achievements logged yet."
+            onEditAchievement={(r) => setEditAchievement(r)}
+            onDelete={deleteAchievement}
+            canDelete={(r) => r.entryType === 'Achievement'}
           />
         </Section>
 
@@ -145,6 +170,8 @@ export default function EmployeeDashboard() {
           <GrievanceList
             grievances={records.grievances}
             viewer={{ uid: user.uid, name: profile.name, role: 'employee' }}
+            onEdit={(g) => setEditGrievance(g)}
+            onDelete={deleteGrievance}
           />
         </Section>
 
@@ -222,6 +249,21 @@ export default function EmployeeDashboard() {
       )}
       {modal === 'achievement' && (
         <AchievementForm employeeId={user.uid} onClose={() => setModal(null)} onSaved={loadData} />
+      )}
+      {editAchievement && (
+        <AchievementForm
+          employeeId={user.uid}
+          record={editAchievement}
+          onClose={() => setEditAchievement(null)}
+          onSaved={loadData}
+        />
+      )}
+      {editGrievance && (
+        <GrievanceEditModal
+          record={editGrievance}
+          onClose={() => setEditGrievance(null)}
+          onSaved={loadData}
+        />
       )}
       {modal === 'recognition' && (
         <GiveRecognitionForm
@@ -345,29 +387,33 @@ function GiveRecognitionForm({ giverUid, giverName, onClose, onSaved }) {
   )
 }
 
-function AchievementForm({ employeeId, onClose, onSaved }) {
-  const [date, setDate] = useState(todayISO())
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
+function AchievementForm({ employeeId, record, onClose, onSaved }) {
+  const [date, setDate] = useState(record?.date || todayISO())
+  const [title, setTitle] = useState(record?.title || '')
+  const [description, setDescription] = useState(record?.description || '')
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
-    await addRecord('performance', {
-      employeeId,
-      entryType: 'Achievement',
-      date,
-      title,
-      description,
-    })
+    if (record) {
+      await updateRecord('performance', record.id, { date, title, description })
+    } else {
+      await addRecord('performance', {
+        employeeId,
+        entryType: 'Achievement',
+        date,
+        title,
+        description,
+      })
+    }
     setSubmitting(false)
     onSaved()
     onClose()
   }
 
   return (
-    <Modal title="Add Achievement" onClose={onClose}>
+    <Modal title={record ? 'Edit Achievement' : 'Add Achievement'} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <LabeledInput label="Date" type="date" required value={date} onChange={setDate} />
         <LabeledInput label="Title" required value={title} onChange={setTitle} placeholder="e.g. Shipped the Q3 migration" />

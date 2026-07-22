@@ -17,8 +17,9 @@ import GrievanceList from '../components/GrievanceList.jsx'
 import Avatar from '../components/Avatar.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { getUserDoc, getRecordsForEmployee, addRecord, updateRecord } from '../lib/firestoreHelpers.js'
+import { getUserDoc, getRecordsForEmployee, addRecord, updateRecord, deleteRecord } from '../lib/firestoreHelpers.js'
 import { sendAlert } from '../lib/notify.js'
+import GrievanceEditModal from '../components/GrievanceEditModal.jsx'
 import { computeLeaveBalance, sortByDateDesc, latestByDate, isReview } from '../lib/aggregate.js'
 import { GRIEVANCE_STATUSES, GRIEVANCE_PRIORITIES, FEEDBACK_TYPES, RECOGNITION_TYPES } from '../lib/constants.js'
 import {
@@ -151,6 +152,13 @@ export default function EmployeeDetail() {
             records={records.performance}
             adminName={adminProfile?.name}
             onAdd={() => setModal({ type: 'add-performance' })}
+            onEditAchievement={(r) => setModal({ type: 'edit-achievement', data: r })}
+            onDelete={async (r) => {
+              if (window.confirm('Delete this entry?')) {
+                await deleteRecord('performance', r.id)
+                loadData()
+              }
+            }}
             selectedIds={selectedIdsByCollection.performance}
             onToggle={makeToggle('performance', performanceSummaryLine)}
           />
@@ -160,6 +168,13 @@ export default function EmployeeDetail() {
             records={records.grievances}
             viewer={{ uid: adminProfile?.id, name: adminProfile?.name, role: 'admin' }}
             onUpdate={(rec) => setModal({ type: 'update-grievance', data: rec })}
+            onEdit={(rec) => setModal({ type: 'edit-grievance', data: rec })}
+            onDelete={async (rec) => {
+              if (window.confirm('Delete this grievance? This cannot be undone.')) {
+                await deleteRecord('grievances', rec.id)
+                loadData()
+              }
+            }}
             selectedIds={selectedIdsByCollection.grievances}
             onToggle={makeToggle('grievances', grievanceSummaryLine)}
           />
@@ -178,6 +193,13 @@ export default function EmployeeDetail() {
             records={records.feedback}
             adminName={adminProfile?.name}
             onAdd={() => setModal({ type: 'add-feedback' })}
+            onEdit={(rec) => setModal({ type: 'edit-feedback', data: rec })}
+            onDelete={async (rec) => {
+              if (window.confirm('Delete this feedback entry?')) {
+                await deleteRecord('feedback', rec.id)
+                loadData()
+              }
+            }}
             selectedIds={selectedIdsByCollection.feedback}
             onToggle={makeToggle('feedback', feedbackSummaryLine)}
           />
@@ -250,6 +272,22 @@ export default function EmployeeDetail() {
           onClose={() => setModal(null)}
           onSaved={loadData}
         />
+      )}
+      {modal?.type === 'edit-feedback' && (
+        <FeedbackForm
+          employeeId={uid}
+          employee={employee}
+          record={modal.data}
+          defaultGivenBy={adminProfile?.name}
+          onClose={() => setModal(null)}
+          onSaved={loadData}
+        />
+      )}
+      {modal?.type === 'edit-achievement' && (
+        <AchievementEditForm record={modal.data} onClose={() => setModal(null)} onSaved={loadData} />
+      )}
+      {modal?.type === 'edit-grievance' && (
+        <GrievanceEditModal record={modal.data} onClose={() => setModal(null)} onSaved={loadData} />
       )}
       {modal?.type === 'update-grievance' && (
         <GrievanceUpdateForm
@@ -343,7 +381,7 @@ function SelectCell({ record, selectedIds, onToggle }) {
   )
 }
 
-function PerformanceTab({ records, onAdd, selectedIds, onToggle }) {
+function PerformanceTab({ records, onAdd, onEditAchievement, onDelete, selectedIds, onToggle }) {
   return (
     <Section title="Performance & Achievements" onAdd={onAdd} addLabel="+ Add Review">
       <PerformanceTimeline
@@ -352,6 +390,9 @@ function PerformanceTab({ records, onAdd, selectedIds, onToggle }) {
         selectable
         selectedIds={selectedIds}
         onToggle={onToggle}
+        onEditAchievement={onEditAchievement}
+        onDelete={onDelete}
+        canDelete={() => true}
       />
     </Section>
   )
@@ -412,15 +453,45 @@ function PerformanceForm({ employeeId, employee, defaultReviewer, onClose, onSav
   )
 }
 
+// Edit an existing self-logged achievement (admin or the owning employee).
+function AchievementEditForm({ record, onClose, onSaved }) {
+  const [date, setDate] = useState(record.date || '')
+  const [title, setTitle] = useState(record.title || '')
+  const [description, setDescription] = useState(record.description || '')
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSubmitting(true)
+    await updateRecord('performance', record.id, { date, title, description })
+    setSubmitting(false)
+    onSaved()
+    onClose()
+  }
+
+  return (
+    <Modal title="Edit Achievement" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <LabeledInput label="Date" type="date" required value={date} onChange={setDate} />
+        <LabeledInput label="Title" required value={title} onChange={setTitle} />
+        <LabeledTextarea label="Description" value={description} onChange={setDescription} />
+        <FormActions submitting={submitting} onCancel={onClose} />
+      </form>
+    </Modal>
+  )
+}
+
 // --- Grievances ----------------------------------------------------------
 
-function GrievancesTab({ records, viewer, onUpdate, selectedIds, onToggle }) {
+function GrievancesTab({ records, viewer, onUpdate, onEdit, onDelete, selectedIds, onToggle }) {
   return (
     <Section title="Grievances">
       <GrievanceList
         grievances={records}
         viewer={viewer}
         onUpdate={onUpdate}
+        onEdit={onEdit}
+        onDelete={onDelete}
         selectedIds={selectedIds}
         onToggle={onToggle}
       />
@@ -578,7 +649,7 @@ function RecognitionForm({ employeeId, defaultGivenBy, adminUid, onClose, onSave
 
 // --- Feedback --------------------------------------------------------------
 
-function FeedbackTab({ records, onAdd, selectedIds, onToggle }) {
+function FeedbackTab({ records, onAdd, onEdit, onDelete, selectedIds, onToggle }) {
   const sorted = sortByDateDesc(records, 'date')
   return (
     <Section title="Feedback" onAdd={onAdd} addLabel="+ Add Feedback">
@@ -590,38 +661,52 @@ function FeedbackTab({ records, onAdd, selectedIds, onToggle }) {
         records={sorted}
         selectedIds={selectedIds}
         onToggle={onToggle}
+        rowActions={(rec) => (
+          <span className="flex gap-3">
+            <button type="button" onClick={() => onEdit(rec)} className="text-xs text-slate-500 hover:text-brand hover:underline">
+              Edit
+            </button>
+            <button type="button" onClick={() => onDelete(rec)} className="text-xs text-slate-400 hover:text-red-600 hover:underline">
+              Delete
+            </button>
+          </span>
+        )}
       />
     </Section>
   )
 }
 
-function FeedbackForm({ employeeId, employee, defaultGivenBy, onClose, onSaved }) {
+function FeedbackForm({ employeeId, employee, record, defaultGivenBy, onClose, onSaved }) {
   const [form, setForm] = useState({
-    date: '',
-    type: FEEDBACK_TYPES[0],
-    givenBy: defaultGivenBy || '',
-    summary: '',
-    actionItems: '',
-    followUpDate: '',
+    date: record?.date || '',
+    type: record?.type || FEEDBACK_TYPES[0],
+    givenBy: record?.givenBy || defaultGivenBy || '',
+    summary: record?.summary || '',
+    actionItems: record?.actionItems || '',
+    followUpDate: record?.followUpDate || '',
   })
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
-    await addRecord('feedback', { employeeId, ...form })
-    sendAlert({
-      to: employee?.email,
-      subject: 'New feedback was shared with you',
-      text: `Hi ${employee?.name || ''},\n\n${form.givenBy} added ${form.type} feedback in Cadence.\n\nLog in to read it.`,
-    })
+    if (record) {
+      await updateRecord('feedback', record.id, { ...form })
+    } else {
+      await addRecord('feedback', { employeeId, ...form })
+      sendAlert({
+        to: employee?.email,
+        subject: 'New feedback was shared with you',
+        text: `Hi ${employee?.name || ''},\n\n${form.givenBy} added ${form.type} feedback in Cadence.\n\nLog in to read it.`,
+      })
+    }
     setSubmitting(false)
     onSaved()
     onClose()
   }
 
   return (
-    <Modal title="Add Feedback" onClose={onClose} wide>
+    <Modal title={record ? 'Edit Feedback' : 'Add Feedback'} onClose={onClose} wide>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <LabeledInput label="Date" type="date" required value={form.date} onChange={(v) => setForm((f) => ({ ...f, date: v }))} />
@@ -765,11 +850,12 @@ function LeaveDecisionModal({ record, employee, decision, adminName, onClose, on
 
 // --- Admin account actions -------------------------------------------------
 
-// Reset-password (client-side email, works immediately) and hard-delete (calls
-// the serverless endpoint; inert until FIREBASE_SERVICE_ACCOUNT is configured).
+// Set-password (Admin SDK, in-portal), reset-password email, and hard-delete.
+// Both server-backed actions are inert until FIREBASE_SERVICE_ACCOUNT is set.
 function AdminEmployeeActions({ employee, onDeleted }) {
   const [resetState, setResetState] = useState(null) // null | 'sending' | 'sent' | error string
   const [showDelete, setShowDelete] = useState(false)
+  const [showSetPassword, setShowSetPassword] = useState(false)
 
   async function handleReset() {
     setResetState('sending')
@@ -783,14 +869,17 @@ function AdminEmployeeActions({ employee, onDeleted }) {
 
   return (
     <div className="flex flex-col items-end gap-2">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
+        <button type="button" onClick={() => setShowSetPassword(true)} className="btn-secondary text-xs">
+          Set password
+        </button>
         <button
           type="button"
           onClick={handleReset}
           disabled={resetState === 'sending' || resetState === 'sent'}
           className="btn-secondary text-xs"
         >
-          {resetState === 'sending' ? 'Sending…' : resetState === 'sent' ? '✓ Reset email sent' : 'Reset password'}
+          {resetState === 'sending' ? 'Sending…' : resetState === 'sent' ? '✓ Reset email sent' : 'Email reset link'}
         </button>
         <button
           type="button"
@@ -803,10 +892,89 @@ function AdminEmployeeActions({ employee, onDeleted }) {
       {resetState && resetState !== 'sending' && resetState !== 'sent' && (
         <p className="text-xs text-red-600">{resetState}</p>
       )}
+      {showSetPassword && (
+        <SetPasswordModal employee={employee} onClose={() => setShowSetPassword(false)} />
+      )}
       {showDelete && (
         <DeleteEmployeeModal employee={employee} onClose={() => setShowDelete(false)} onDeleted={onDeleted} />
       )}
     </div>
+  )
+}
+
+function SetPasswordModal({ employee, onClose }) {
+  const [password, setPassword] = useState('')
+  const [show, setShow] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [done, setDone] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError('')
+    if (password.length < 6) return setError('Password must be at least 6 characters.')
+    setSubmitting(true)
+    try {
+      const idToken = await auth.currentUser.getIdToken()
+      const res = await fetch('/api/set-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ uid: employee.id, password }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`)
+      setDone(true)
+    } catch (err) {
+      setError(err.message || 'Could not set password.')
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Modal title={`Set password — ${employee.name}`} onClose={onClose}>
+      {done ? (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            ✓ New password set for {employee.name}. Share it with them securely; they can change it later from the
+            Password button in the header.
+          </p>
+          <div className="flex justify-end">
+            <button type="button" onClick={onClose} className="btn-primary">
+              Done
+            </button>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Sets a new sign-in password directly (stored securely by Firebase Authentication, never in the database).
+          </p>
+          <label className="block text-sm">
+            <span className="font-medium text-slate-700">New password</span>
+            <input
+              type={show ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input mt-1"
+              autoComplete="new-password"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            <input type="checkbox" className="h-4 w-4 accent-brand" checked={show} onChange={(e) => setShow(e.target.checked)} />
+            Show password
+          </label>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose} className="btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" disabled={submitting} className="btn-primary">
+              {submitting ? 'Saving…' : 'Set password'}
+            </button>
+          </div>
+        </form>
+      )}
+    </Modal>
   )
 }
 

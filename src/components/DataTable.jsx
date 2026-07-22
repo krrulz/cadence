@@ -1,8 +1,17 @@
 // `records` is optional and only needed when the table is selectable — rows stay
 // the plain cell arrays callers already pass, and records[i] is the source doc
 // behind rows[i], so selection can report a real id back to the caller.
-export default function DataTable({ headers, rows, emptyText, selectable = false, records, selectedIds, onToggle }) {
-  const colCount = headers.length + (selectable ? 1 : 0)
+export default function DataTable({
+  headers,
+  rows,
+  emptyText,
+  selectable = false,
+  records,
+  selectedIds,
+  onToggle,
+  rowActions,
+}) {
+  const colCount = headers.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0)
 
   return (
     <div className="overflow-x-auto">
@@ -15,6 +24,7 @@ export default function DataTable({ headers, rows, emptyText, selectable = false
                 {h}
               </th>
             ))}
+            {rowActions && <th className="py-2 pr-4"></th>}
           </tr>
         </thead>
         <tbody>
@@ -36,6 +46,9 @@ export default function DataTable({ headers, rows, emptyText, selectable = false
                   {cell ?? '—'}
                 </td>
               ))}
+              {rowActions && (
+                <td className="whitespace-nowrap py-2 pr-4">{records?.[i] && rowActions(records[i])}</td>
+              )}
             </tr>
           ))}
           {rows.length === 0 && (

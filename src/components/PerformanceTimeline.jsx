@@ -6,6 +6,9 @@ export default function PerformanceTimeline({
   selectable = false,
   selectedIds,
   onToggle,
+  onEditAchievement,
+  onDelete,
+  canDelete,
 }) {
   const sorted = sortByDateDesc(records, 'date')
 
@@ -22,14 +25,19 @@ export default function PerformanceTimeline({
           selectable={selectable}
           selected={selectedIds?.has(r.id)}
           onToggle={onToggle}
+          onEditAchievement={onEditAchievement}
+          onDelete={onDelete}
+          canDelete={canDelete}
         />
       ))}
     </div>
   )
 }
 
-function PerformanceEntry({ record, selectable, selected, onToggle }) {
+function PerformanceEntry({ record, selectable, selected, onToggle, onEditAchievement, onDelete, canDelete }) {
   const isAchievement = record.entryType === 'Achievement'
+  const showEdit = isAchievement && onEditAchievement
+  const showDelete = onDelete && (canDelete ? canDelete(record) : false)
 
   return (
     <div className="flex gap-3 rounded-md border border-slate-200 p-3">
@@ -56,9 +64,29 @@ function PerformanceEntry({ record, selectable, selected, onToggle }) {
             )}
             <span className="text-sm text-slate-500">{record.date}</span>
           </div>
-          {!isAchievement && record.rating != null && (
-            <span className="text-sm font-semibold text-brand">Rating: {record.rating}/5</span>
-          )}
+          <div className="flex items-center gap-3">
+            {!isAchievement && record.rating != null && (
+              <span className="text-sm font-semibold text-brand">Rating: {record.rating}/5</span>
+            )}
+            {showEdit && (
+              <button
+                type="button"
+                onClick={() => onEditAchievement(record)}
+                className="text-xs text-slate-500 hover:text-brand hover:underline"
+              >
+                Edit
+              </button>
+            )}
+            {showDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(record)}
+                className="text-xs text-slate-400 hover:text-red-600 hover:underline"
+              >
+                Delete
+              </button>
+            )}
+          </div>
         </div>
 
         {isAchievement ? (

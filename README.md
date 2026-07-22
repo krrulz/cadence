@@ -135,9 +135,14 @@ This feature sends the selected records — which can include **named employees'
 
 ## 7. Admin account actions (reset password & delete employee)
 
-Each employee's detail page has two admin-only controls in the header:
+**Passwords are never stored in Firestore.** Firebase Authentication stores them hashed; the app only ever asks Firebase to send a reset email or (via the Admin SDK) to set a new one. Nothing writes a password into the database.
 
-- **Reset password** — sends Firebase's standard password-reset email to the employee. This is a pure client-side call (`sendPasswordResetEmail`); it needs **no** backend or extra config and works as soon as the app is deployed. The app never sees or stores passwords.
+Anyone signed in can change **their own** password from the **Password** button in the header (`ChangePasswordModal` → Firebase `updatePassword`, after re-authenticating with the current password). This needs no backend and works immediately.
+
+Each employee's detail page has these admin-only controls in the header:
+
+- **Set password** — set a new sign-in password for the employee directly, in-portal. Uses the Admin SDK serverless endpoint [`api/set-password.js`](./api/set-password.js) (`auth().updateUser`), so it needs the same `FIREBASE_SERVICE_ACCOUNT` as delete-employee; inert until that is configured. The password goes to Firebase Auth, never Firestore.
+- **Email reset link** — sends Firebase's standard password-reset email (`sendPasswordResetEmail`); pure client-side, no backend needed.
 - **Delete employee** — **permanently** deletes the login account **and** every record (performance, grievances, recognitions, feedback, leave, 1:1s including their sub-notes and action items). A typed-name confirmation is required. This cannot be undone.
 
 ### Delete requires a service-account key

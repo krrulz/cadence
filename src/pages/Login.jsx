@@ -1,16 +1,19 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import loginBackground from '../assets/cadence-login-background.svg'
 
 export default function Login() {
   const { user, profile, loading, login } = useAuth()
-  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  // Once auth + profile resolve, route by role. This guard (not a manual
+  // navigate) handles the post-login redirect, so employees land on /me
+  // instead of bouncing through the admin-only '/'.
   if (!loading && user && profile) {
     return <Navigate to={profile.role === 'admin' ? '/' : '/me'} replace />
   }
@@ -21,10 +24,10 @@ export default function Login() {
     setSubmitting(true)
     try {
       await login(email, password)
-      navigate('/', { replace: true })
+      // No manual navigate — the role-aware guard above redirects once the
+      // profile loads.
     } catch (err) {
       setError('Invalid email or password.')
-    } finally {
       setSubmitting(false)
     }
   }
@@ -83,15 +86,26 @@ export default function Login() {
                 <label htmlFor="password" className="block text-sm font-medium text-slate-700">
                   Password
                 </label>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2.5 text-base transition-colors focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand sm:text-sm"
-                />
+                <div className="relative mt-1">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-md border border-slate-300 px-3 py-2.5 pr-16 text-base transition-colors focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand sm:text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-xs font-medium text-slate-500 hover:text-brand"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
 
               {error && <p className="text-sm text-red-600">{error}</p>}

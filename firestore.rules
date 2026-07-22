@@ -46,8 +46,17 @@ service cloud.firestore {
         isOwner(request.resource.data.employeeId) &&
         request.resource.data.entryType == 'Achievement'
       );
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      // Employees may edit/delete their own achievements (never reviews, and
+      // never reassigning or changing the entry type). Admin may edit/delete any.
+      allow update: if isAdmin() || (
+        resource.data.entryType == 'Achievement' &&
+        isOwner(resource.data.employeeId) &&
+        request.resource.data.entryType == 'Achievement' &&
+        request.resource.data.employeeId == resource.data.employeeId
+      );
+      allow delete: if isAdmin() || (
+        resource.data.entryType == 'Achievement' && isOwner(resource.data.employeeId)
+      );
     }
 
     // --- recognitions -------------------------------------------------------
@@ -82,8 +91,13 @@ service cloud.firestore {
         isOwner(request.resource.data.employeeId) &&
         request.resource.data.status == 'Open'
       );
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      // Admin may update anything. The owner may edit only the category and
+      // description of their own grievance (not status/priority/assignee/SLA).
+      allow update: if isAdmin() || (
+        isOwner(resource.data.employeeId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['category', 'description'])
+      );
+      allow delete: if isAdmin() || isOwner(resource.data.employeeId);
 
       // Comment thread on a grievance. The employee it concerns and the admin
       // may both read and post; each comment carries its author, and only the

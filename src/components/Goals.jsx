@@ -167,6 +167,9 @@ function GoalModal({ goal, employeeId, viewer, onClose, onSaved }) {
   const [submitting, setSubmitting] = useState(false)
 
   const hasKRs = keyResults.some((k) => k.text.trim())
+  // Can't call a goal Completed while any of its key results is still open.
+  const openKRs = keyResults.filter((k) => k.text.trim() && !k.done)
+  const blockedComplete = form.status === 'Completed' && openKRs.length > 0
 
   function setKR(i, text) {
     setKeyResults((prev) => prev.map((k, idx) => (idx === i ? { ...k, text } : k)))
@@ -180,6 +183,7 @@ function GoalModal({ goal, employeeId, viewer, onClose, onSaved }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (blockedComplete) return
     setSubmitting(true)
     const cleanKRs = keyResults.filter((k) => k.text.trim()).map((k) => ({ text: k.text.trim(), done: !!k.done }))
     const data = {
@@ -235,6 +239,13 @@ function GoalModal({ goal, employeeId, viewer, onClose, onSaved }) {
           <LabeledInput label="Due date" type="date" value={form.dueDate} onChange={(v) => setForm((f) => ({ ...f, dueDate: v }))} />
         </div>
 
+        {blockedComplete && (
+          <p className="rounded-md bg-amber-50 p-2 text-sm text-amber-800">
+            {openKRs.length} key result{openKRs.length === 1 ? '' : 's'} still open — tick them all off before marking
+            this goal <strong>Completed</strong>.
+          </p>
+        )}
+
         <div>
           <span className="text-sm font-medium text-slate-700">Key results</span>
           <p className="text-xs text-slate-400">Progress is calculated from these. Leave empty to set progress manually.</p>
@@ -279,7 +290,7 @@ function GoalModal({ goal, employeeId, viewer, onClose, onSaved }) {
           </label>
         )}
 
-        <FormActions submitting={submitting} onCancel={onClose} />
+        <FormActions submitting={submitting || blockedComplete} onCancel={onClose} />
       </form>
     </Modal>
   )
