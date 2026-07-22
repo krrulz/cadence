@@ -108,8 +108,8 @@ export default function EmployeeDetail() {
   if (!employee) {
     return (
       <Layout>
-        <p className="text-slate-500">Employee not found.</p>
-        <Link to="/" className="text-brand underline">
+        <p className="text-ink-muted">Employee not found.</p>
+        <Link to="/" className="text-mint underline">
           Back to dashboard
         </Link>
       </Layout>
@@ -118,7 +118,7 @@ export default function EmployeeDetail() {
 
   return (
     <Layout>
-      <button type="button" onClick={() => navigate('/')} className="text-sm text-brand hover:underline">
+      <button type="button" onClick={() => navigate('/')} className="text-sm text-mint hover:underline">
         ← Back to roster
       </button>
 
@@ -129,7 +129,7 @@ export default function EmployeeDetail() {
         onDeleted={() => navigate('/')}
       />
 
-      <div className="mt-4 flex gap-1 overflow-x-auto border-b border-slate-200">
+      <div className="mt-4 flex gap-1 overflow-x-auto border-b border-surface-border">
         {TABS.map((t) => (
           <button
             key={t}
@@ -137,8 +137,8 @@ export default function EmployeeDetail() {
             onClick={() => setTab(t)}
             className={`shrink-0 px-4 py-2 text-sm font-medium ${
               tab === t
-                ? 'border-b-2 border-brand text-brand'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'border-b-2 border-brand text-mint'
+                : 'text-ink-muted hover:text-ink'
             }`}
           >
             {TAB_LABELS[t] || t}
@@ -231,8 +231,8 @@ export default function EmployeeDetail() {
       </div>
 
       {selectedItems.length > 0 && (
-        <div className="sticky bottom-4 z-10 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
-          <span className="text-sm font-medium text-slate-700">
+        <div className="sticky bottom-4 z-10 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-surface-border bg-surface-2 p-3 shadow-lg">
+          <span className="text-sm font-medium text-ink">
             {selectedItems.length} item{selectedItems.length === 1 ? '' : 's'} selected across tabs
           </span>
           <div className="flex gap-2">
@@ -342,9 +342,9 @@ function ProfileHeader({ employee, records, leaveBalance, onDeleted }) {
         <div className="flex min-w-0 items-center gap-4">
           <Avatar name={employee.name} colorKey={employee.id || employee.name} size="lg" />
           <div className="min-w-0">
-            <h1 className="text-xl font-semibold text-slate-900">{employee.name}</h1>
-            <p className="truncate text-sm text-slate-500">{employee.email}</p>
-            <p className="text-sm text-slate-500">
+            <h1 className="text-xl font-semibold text-ink">{employee.name}</h1>
+            <p className="truncate text-sm text-ink-muted">{employee.email}</p>
+            <p className="text-sm text-ink-muted">
               {employee.department} · Joined {employee.dateOfJoining} · Manager {employee.managerName || '—'}
             </p>
           </div>
@@ -354,9 +354,9 @@ function ProfileHeader({ employee, records, leaveBalance, onDeleted }) {
 
       <div className="mt-4 grid grid-cols-3 gap-3">
         {chips.map((c) => (
-          <div key={c.label} className="rounded-lg bg-slate-50 px-3 py-2 text-center">
-            <p className="text-lg font-semibold text-slate-800">{c.value}</p>
-            <p className="text-xs text-slate-500">{c.label}</p>
+          <div key={c.label} className="rounded-lg bg-white/5 px-3 py-2 text-center">
+            <p className="text-lg font-semibold text-ink">{c.value}</p>
+            <p className="text-xs text-ink-muted">{c.label}</p>
           </div>
         ))}
       </div>
@@ -372,7 +372,7 @@ function SelectCell({ record, selectedIds, onToggle }) {
     <td className="py-2 pr-2">
       <input
         type="checkbox"
-        className="h-4 w-4 accent-brand"
+        className="h-4 w-4 accent-mint"
         checked={!!selectedIds?.has(record.id)}
         onChange={() => onToggle?.(record)}
         aria-label="Select row"
@@ -430,7 +430,7 @@ function PerformanceForm({ employeeId, employee, defaultReviewer, onClose, onSav
           <LabeledInput label="Date" type="date" required value={form.date} onChange={(v) => setForm((f) => ({ ...f, date: v }))} />
           <LabeledInput label="Review Period" required value={form.reviewPeriod} onChange={(v) => setForm((f) => ({ ...f, reviewPeriod: v }))} placeholder="e.g. H1 2026" />
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">Rating (1-5)</span>
+            <span className="font-medium text-ink">Rating (1-5)</span>
             <select
               value={form.rating}
               onChange={(e) => setForm((f) => ({ ...f, rating: e.target.value }))}
@@ -531,10 +531,10 @@ function GrievanceUpdateForm({ record, employee, defaultResolvedBy, onClose, onS
   return (
     <Modal title="Update Grievance" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <p className="text-sm text-slate-600">{record.description}</p>
+        <p className="text-sm text-ink-muted">{record.description}</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">Status</span>
+            <span className="font-medium text-ink">Status</span>
             <select value={status} onChange={(e) => setStatus(e.target.value)} className="input mt-1">
               {GRIEVANCE_STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -544,7 +544,7 @@ function GrievanceUpdateForm({ record, employee, defaultResolvedBy, onClose, onS
             </select>
           </label>
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">Priority</span>
+            <span className="font-medium text-ink">Priority</span>
             <select value={priority} onChange={(e) => setPriority(e.target.value)} className="input mt-1">
               {GRIEVANCE_PRIORITIES.map((p) => (
                 <option key={p} value={p}>
@@ -555,7 +555,7 @@ function GrievanceUpdateForm({ record, employee, defaultResolvedBy, onClose, onS
           </label>
         </div>
         <LabeledInput label="Assignee" value={assignee} onChange={setAssignee} placeholder="Who's handling this?" />
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-ink-faint">
           Target resolution is derived from priority (High 7d · Medium 14d · Low 30d) from the date raised.
         </p>
         {status === 'Resolved' && (
@@ -621,7 +621,7 @@ function RecognitionForm({ employeeId, defaultGivenBy, adminUid, onClose, onSave
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <LabeledInput label="Date" type="date" required value={form.date} onChange={(v) => setForm((f) => ({ ...f, date: v }))} />
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">Type</span>
+            <span className="font-medium text-ink">Type</span>
             <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} className="input mt-1">
               {RECOGNITION_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -637,7 +637,7 @@ function RecognitionForm({ employeeId, defaultGivenBy, adminUid, onClose, onSave
               checked={form.sharedPublicly}
               onChange={(e) => setForm((f) => ({ ...f, sharedPublicly: e.target.checked }))}
             />
-            <span className="font-medium text-slate-700">Shared publicly</span>
+            <span className="font-medium text-ink">Shared publicly</span>
           </label>
         </div>
         <LabeledTextarea label="Description" required value={form.description} onChange={(v) => setForm((f) => ({ ...f, description: v }))} />
@@ -663,10 +663,10 @@ function FeedbackTab({ records, onAdd, onEdit, onDelete, selectedIds, onToggle }
         onToggle={onToggle}
         rowActions={(rec) => (
           <span className="flex gap-3">
-            <button type="button" onClick={() => onEdit(rec)} className="text-xs text-slate-500 hover:text-brand hover:underline">
+            <button type="button" onClick={() => onEdit(rec)} className="text-xs text-ink-muted hover:text-mint hover:underline">
               Edit
             </button>
-            <button type="button" onClick={() => onDelete(rec)} className="text-xs text-slate-400 hover:text-red-600 hover:underline">
+            <button type="button" onClick={() => onDelete(rec)} className="text-xs text-ink-faint hover:text-rose-400 hover:underline">
               Delete
             </button>
           </span>
@@ -711,7 +711,7 @@ function FeedbackForm({ employeeId, employee, record, defaultGivenBy, onClose, o
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <LabeledInput label="Date" type="date" required value={form.date} onChange={(v) => setForm((f) => ({ ...f, date: v }))} />
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">Type</span>
+            <span className="font-medium text-ink">Type</span>
             <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} className="input mt-1">
               {FEEDBACK_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -742,17 +742,17 @@ function LeaveTab({ balance, records, onApprove, onReject, selectedIds, onToggle
           {balance &&
             Object.entries(balance.byType).map(([type, v]) => (
               <div key={type} className="card">
-                <p className="text-xs font-medium text-slate-500">{type}</p>
-                <p className="mt-1 text-lg font-semibold text-brand">{v.balance}</p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs font-medium text-ink-muted">{type}</p>
+                <p className="mt-1 text-lg font-semibold text-mint">{v.balance}</p>
+                <p className="text-xs text-ink-faint">
                   {v.taken} taken / {v.entitlement} entitled
                 </p>
                 {v.takenBefore > 0 && (
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-ink-faint">
                     ({v.takenBefore} before Cadence, {v.takenInApp} logged here)
                   </p>
                 )}
-                {v.carryOver > 0 && <p className="text-xs text-slate-400">+{v.carryOver} carried over</p>}
+                {v.carryOver > 0 && <p className="text-xs text-ink-faint">+{v.carryOver} carried over</p>}
               </div>
             ))}
         </div>
@@ -762,7 +762,7 @@ function LeaveTab({ balance, records, onApprove, onReject, selectedIds, onToggle
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+              <tr className="border-b border-surface-border text-xs uppercase tracking-wide text-ink-muted">
                 <th className="py-2 pr-2"></th>
                 <th className="py-2 pr-4">Type</th>
                 <th className="py-2 pr-4">From</th>
@@ -775,7 +775,7 @@ function LeaveTab({ balance, records, onApprove, onReject, selectedIds, onToggle
             </thead>
             <tbody>
               {sorted.map((r) => (
-                <tr key={r.id} className="border-b border-slate-100">
+                <tr key={r.id} className="border-b border-white/5">
                   <SelectCell record={r} selectedIds={selectedIds} onToggle={onToggle} />
                   <td className="py-2 pr-4">{r.leaveType}</td>
                   <td className="py-2 pr-4">{r.dateFrom}</td>
@@ -784,14 +784,14 @@ function LeaveTab({ balance, records, onApprove, onReject, selectedIds, onToggle
                   <td className="py-2 pr-4">
                     <StatusBadge label={r.status} />
                   </td>
-                  <td className="py-2 pr-4 text-slate-500">{r.approvedBy || '—'}</td>
+                  <td className="py-2 pr-4 text-ink-muted">{r.approvedBy || '—'}</td>
                   <td className="py-2 pr-4">
                     {r.status === 'Pending' && (
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => onApprove(r)} className="text-green-700 hover:underline">
+                        <button type="button" onClick={() => onApprove(r)} className="text-emerald-300 hover:underline">
                           Approve
                         </button>
-                        <button type="button" onClick={() => onReject(r)} className="text-red-700 hover:underline">
+                        <button type="button" onClick={() => onReject(r)} className="text-rose-300 hover:underline">
                           Reject
                         </button>
                       </div>
@@ -801,7 +801,7 @@ function LeaveTab({ balance, records, onApprove, onReject, selectedIds, onToggle
               ))}
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-6 text-center text-slate-400">
+                  <td colSpan={8} className="py-6 text-center text-ink-faint">
                     No leave requests yet.
                   </td>
                 </tr>
@@ -832,7 +832,7 @@ function LeaveDecisionModal({ record, employee, decision, adminName, onClose, on
 
   return (
     <Modal title={`${decision === 'Approved' ? 'Approve' : 'Reject'} Leave Request`} onClose={onClose}>
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-ink-muted">
         {record.leaveType}: {record.dateFrom} → {record.dateTo} ({record.numDays} day
         {record.numDays === 1 ? '' : 's'})
       </p>
@@ -884,13 +884,13 @@ function AdminEmployeeActions({ employee, onDeleted }) {
         <button
           type="button"
           onClick={() => setShowDelete(true)}
-          className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+          className="rounded-md border border-rose-500/40 px-3 py-1.5 text-xs font-medium text-rose-300 hover:bg-rose-500/10"
         >
           Delete employee
         </button>
       </div>
       {resetState && resetState !== 'sending' && resetState !== 'sent' && (
-        <p className="text-xs text-red-600">{resetState}</p>
+        <p className="text-xs text-rose-400">{resetState}</p>
       )}
       {showSetPassword && (
         <SetPasswordModal employee={employee} onClose={() => setShowSetPassword(false)} />
@@ -934,7 +934,7 @@ function SetPasswordModal({ employee, onClose }) {
     <Modal title={`Set password — ${employee.name}`} onClose={onClose}>
       {done ? (
         <div className="space-y-4">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-ink-muted">
             ✓ New password set for {employee.name}. Share it with them securely; they can change it later from the
             Password button in the header.
           </p>
@@ -946,11 +946,11 @@ function SetPasswordModal({ employee, onClose }) {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-muted">
             Sets a new sign-in password directly (stored securely by Firebase Authentication, never in the database).
           </p>
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">New password</span>
+            <span className="font-medium text-ink">New password</span>
             <input
               type={show ? 'text' : 'password'}
               value={password}
@@ -959,11 +959,11 @@ function SetPasswordModal({ employee, onClose }) {
               autoComplete="new-password"
             />
           </label>
-          <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" className="h-4 w-4 accent-brand" checked={show} onChange={(e) => setShow(e.target.checked)} />
+          <label className="flex items-center gap-2 text-sm text-ink-muted">
+            <input type="checkbox" className="h-4 w-4 accent-mint" checked={show} onChange={(e) => setShow(e.target.checked)} />
             Show password
           </label>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-rose-400">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary">
               Cancel
@@ -1007,13 +1007,13 @@ function DeleteEmployeeModal({ employee, onClose, onDeleted }) {
   return (
     <Modal title="Delete Employee" onClose={onClose}>
       <div className="space-y-4">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-ink-muted">
           This <strong>permanently deletes</strong> {employee.name}&apos;s login and every record —
           performance, grievances, recognitions, feedback, leave and 1:1s. This cannot be undone.
         </p>
         <label className="block text-sm">
-          <span className="font-medium text-slate-700">
-            Type <span className="font-mono text-red-700">{employee.name}</span> to confirm
+          <span className="font-medium text-ink">
+            Type <span className="font-mono text-rose-300">{employee.name}</span> to confirm
           </span>
           <input
             type="text"
@@ -1023,7 +1023,7 @@ function DeleteEmployeeModal({ employee, onClose, onDeleted }) {
             autoComplete="off"
           />
         </label>
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        {error && <p className="text-xs text-rose-400">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="btn-secondary">
             Cancel

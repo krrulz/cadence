@@ -7,11 +7,15 @@ import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import AddEmployeeModal from '../components/AddEmployeeModal.jsx'
 import ReportModal from '../components/ReportModal.jsx'
 import Avatar from '../components/Avatar.jsx'
+import Section from '../components/Section.jsx'
+import DataTable from '../components/DataTable.jsx'
+import { useAuth } from '../contexts/AuthContext.jsx'
 import { getAllUsers, getAllRecords } from '../lib/firestoreHelpers.js'
-import { buildEmployeeSummary } from '../lib/aggregate.js'
+import { buildEmployeeSummary, sortByDateDesc } from '../lib/aggregate.js'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [summaries, setSummaries] = useState([])
   const [records, setRecords] = useState({})
@@ -88,6 +92,14 @@ export default function AdminDashboard() {
     return { teamSize, totalOpenGrievances, avgRating, flagged }
   }, [summaries])
 
+  // Recognitions addressed to the admin themselves. The roster only lists
+  // employees, so without this an employee-given recognition to the admin has
+  // nowhere to show and would be invisible.
+  const myRecognitions = useMemo(
+    () => sortByDateDesc((records.recognitions || []).filter((r) => r.employeeId === user?.uid), 'date'),
+    [records.recognitions, user?.uid],
+  )
+
   if (loading) {
     return (
       <Layout>
@@ -99,7 +111,7 @@ export default function AdminDashboard() {
   return (
     <Layout>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-slate-900">Admin Dashboard</h1>
+        <h1 className="text-2xl font-bold text-ink tracking-tight">Admin Dashboard</h1>
         <div className="flex gap-2">
           <button type="button" onClick={() => setShowReport(true)} className="btn-secondary">
             ⤓ Download report
@@ -119,10 +131,10 @@ export default function AdminDashboard() {
 
       <div className="mt-6 card">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-semibold text-accent">
+          <h2 className="font-semibold text-ink">
             Roster
             {selectedIds.size > 0 && (
-              <span className="ml-2 text-sm font-normal text-slate-500">{selectedIds.size} selected</span>
+              <span className="ml-2 text-sm font-normal text-ink-faint">{selectedIds.size} selected</span>
             )}
           </h2>
           <input
@@ -137,11 +149,11 @@ export default function AdminDashboard() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[940px] text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+              <tr className="border-b border-surface-border text-xs uppercase tracking-wide text-ink-faint">
                 <th className="py-2 pr-2">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 accent-brand"
+                    className="h-4 w-4 accent-mint"
                     checked={allFilteredSelected}
                     onChange={toggleAllFiltered}
                     aria-label="Select all"
@@ -162,31 +174,31 @@ export default function AdminDashboard() {
                 <tr
                   key={s.user.id}
                   onClick={() => navigate(`/employee/${s.user.id}`)}
-                  className="cursor-pointer border-b border-slate-100 hover:bg-slate-50"
+                  className="cursor-pointer border-b border-white/5 hover:bg-white/[0.03]"
                 >
                   <td className="py-2 pr-2" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
-                      className="h-4 w-4 accent-brand"
+                      className="h-4 w-4 accent-mint"
                       checked={selectedIds.has(s.user.id)}
                       onChange={() => toggleRow(s.user.id)}
                       aria-label={`Select ${s.user.name}`}
                     />
                   </td>
-                  <td className="py-2 pr-4 font-medium text-slate-800">
+                  <td className="py-2 pr-4 font-medium text-ink">
                     <div className="flex items-center gap-2">
                       <Avatar name={s.user.name} colorKey={s.user.id} size="sm" />
                       <span>{s.user.name}</span>
                     </div>
                   </td>
-                  <td className="py-2 pr-4 text-slate-600">{s.user.department}</td>
-                  <td className="py-2 pr-4 text-slate-600">
+                  <td className="py-2 pr-4 text-ink-muted">{s.user.department}</td>
+                  <td className="py-2 pr-4 text-ink-muted">
                     {s.latestPerformance ? s.latestPerformance.rating : '—'}
                   </td>
-                  <td className="py-2 pr-4 text-slate-600">{s.openGrievanceCount}</td>
-                  <td className="py-2 pr-4 text-slate-600">{s.latestRecognition?.date || '—'}</td>
-                  <td className="py-2 pr-4 text-slate-600">{s.latestFeedback?.date || '—'}</td>
-                  <td className="py-2 pr-4 text-slate-600">{s.leaveBalance.total}</td>
+                  <td className="py-2 pr-4 text-ink-muted">{s.openGrievanceCount}</td>
+                  <td className="py-2 pr-4 text-ink-muted">{s.latestRecognition?.date || '—'}</td>
+                  <td className="py-2 pr-4 text-ink-muted">{s.latestFeedback?.date || '—'}</td>
+                  <td className="py-2 pr-4 text-ink-muted">{s.leaveBalance.total}</td>
                   <td className="py-2 pr-4">
                     <div className="flex flex-wrap gap-1">
                       {s.flags.map((flag) => (
@@ -198,7 +210,7 @@ export default function AdminDashboard() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-slate-400">
+                  <td colSpan={9} className="py-8 text-center text-ink-faint">
                     No employees match your search.
                   </td>
                 </tr>
@@ -207,6 +219,23 @@ export default function AdminDashboard() {
           </table>
         </div>
       </div>
+
+      {myRecognitions.length > 0 && (
+        <div className="mt-6">
+          <Section title="Recognitions for you">
+            <DataTable
+              headers={['Date', 'Type', 'Description', 'From']}
+              rows={myRecognitions.map((r) => [
+                r.date,
+                r.type,
+                r.description,
+                `${r.givenBy}${r.source === 'peer' ? ' (peer)' : ''}`,
+              ])}
+              emptyText="No recognitions yet."
+            />
+          </Section>
+        </div>
+      )}
 
       {showAddModal && (
         <AddEmployeeModal onClose={() => setShowAddModal(false)} onCreated={loadData} />

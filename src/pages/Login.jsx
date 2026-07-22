@@ -62,14 +62,14 @@ export default function Login() {
         <div className="relative">
           <div className="animate-glow-pulse pointer-events-none absolute -inset-1 rounded-2xl bg-gradient-to-br from-brand/40 via-accent/30 to-brand/40 blur-lg" />
           <div
-            className="animate-fade-in-up relative rounded-xl border border-white/10 bg-white/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8"
+            className="animate-fade-in-up relative rounded-2xl border border-surface-border bg-surface-2/85 p-6 shadow-2xl backdrop-blur-xl sm:p-8"
             style={{ animationDelay: '0.12s' }}
           >
-            <p className="text-center text-sm font-medium text-slate-500">Sign in to continue</p>
+            <p className="text-center text-sm font-medium text-ink-muted">Sign in to continue</p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+                <label htmlFor="email" className="block text-sm font-medium text-ink-muted">
                   Email
                 </label>
                 <input
@@ -79,11 +79,11 @@ export default function Login() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2.5 text-base transition-colors focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand sm:text-sm"
+                  className="mt-1 w-full rounded-md border border-surface-border bg-white/5 px-3 py-2.5 text-base text-ink transition-colors focus:border-mint focus:outline-none focus:ring-1 focus:ring-mint sm:text-sm"
                 />
               </div>
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                <label htmlFor="password" className="block text-sm font-medium text-ink-muted">
                   Password
                 </label>
                 <div className="relative mt-1">
@@ -94,12 +94,12 @@ export default function Login() {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-md border border-slate-300 px-3 py-2.5 pr-16 text-base transition-colors focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand sm:text-sm"
+                    className="w-full rounded-md border border-surface-border bg-white/5 px-3 py-2.5 pr-16 text-base text-ink transition-colors focus:border-mint focus:outline-none focus:ring-1 focus:ring-mint sm:text-sm"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
-                    className="absolute inset-y-0 right-0 flex items-center px-3 text-xs font-medium text-slate-500 hover:text-brand"
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-xs font-medium text-ink-faint hover:text-mint"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     tabIndex={-1}
                   >
@@ -113,7 +113,8 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-md bg-brand px-4 py-2.5 text-sm font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-lg disabled:translate-y-0 disabled:opacity-60 disabled:shadow-none"
+                className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-surface transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:translate-y-0 disabled:opacity-60 disabled:shadow-none"
+                style={{ background: 'linear-gradient(135deg,#00E28E,#12B981)', boxShadow: '0 8px 22px -8px rgba(0,226,142,.5)' }}
               >
                 {submitting ? 'Signing in…' : 'Sign in'}
               </button>

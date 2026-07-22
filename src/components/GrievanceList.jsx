@@ -8,7 +8,7 @@ import { grievanceSla } from '../lib/grievance.js'
 // unambiguous (the tag is the status; the colour is the schedule health).
 const SLA_DOT = {
   'On Track': { color: 'bg-green-500', label: 'On track' },
-  'Due Soon': { color: 'bg-amber-500', label: 'Due soon' },
+  'Due Soon': { color: 'bg-amber-500/100', label: 'Due soon' },
   Overdue: { color: 'bg-red-500', label: 'Overdue' },
 }
 
@@ -22,7 +22,7 @@ export default function GrievanceList({ grievances, viewer, onUpdate, onEdit, on
   const isAdmin = viewer.role === 'admin'
 
   if (sorted.length === 0) {
-    return <p className="py-6 text-center text-slate-400">No grievances raised.</p>
+    return <p className="py-6 text-center text-ink-faint">No grievances raised.</p>
   }
 
   return (
@@ -33,12 +33,12 @@ export default function GrievanceList({ grievances, viewer, onUpdate, onEdit, on
         const dot = SLA_DOT[sla.state]
         const open = openId === g.id
         return (
-          <div key={g.id} className="rounded-md border border-slate-200">
+          <div key={g.id} className="rounded-md border border-surface-border">
             <div className="flex items-center gap-2 px-3 py-2">
               {onToggle && (
                 <input
                   type="checkbox"
-                  className="h-4 w-4 shrink-0 accent-brand"
+                  className="h-4 w-4 shrink-0 accent-mint"
                   checked={!!selectedIds?.has(g.id)}
                   onChange={() => onToggle(g)}
                   aria-label="Select grievance"
@@ -57,16 +57,16 @@ export default function GrievanceList({ grievances, viewer, onUpdate, onEdit, on
                       aria-label={`SLA ${dot.label}`}
                     />
                   )}
-                  <span className="font-medium text-slate-800">{g.category}</span>
+                  <span className="font-medium text-ink">{g.category}</span>
                   <StatusBadge label={g.status} />
                 </span>
-                <span className="shrink-0 text-sm text-slate-400">{g.dateRaised}</span>
+                <span className="shrink-0 text-sm text-ink-faint">{g.dateRaised}</span>
               </button>
             </div>
 
             {open && (
-              <div className="space-y-4 border-t border-slate-100 p-3">
-                <p className="whitespace-pre-wrap text-sm text-slate-700">{g.description}</p>
+              <div className="space-y-4 border-t border-white/5 p-3">
+                <p className="whitespace-pre-wrap text-sm text-ink">{g.description}</p>
 
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
                   <Field label="Priority" value={g.priority || '—'} />
@@ -86,12 +86,12 @@ export default function GrievanceList({ grievances, viewer, onUpdate, onEdit, on
                 <CommentThread parentCollection="grievances" parentId={g.id} viewer={viewer} />
 
                 {(onUpdate || onEdit || onDelete) && (
-                  <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-2">
+                  <div className="flex flex-wrap justify-end gap-3 border-t border-white/5 pt-2">
                     {onEdit && (
                       <button
                         type="button"
                         onClick={() => onEdit(g)}
-                        className="text-xs text-slate-500 hover:text-brand hover:underline"
+                        className="text-xs text-ink-muted hover:text-mint hover:underline"
                       >
                         Edit details
                       </button>
@@ -105,7 +105,7 @@ export default function GrievanceList({ grievances, viewer, onUpdate, onEdit, on
                       <button
                         type="button"
                         onClick={() => onDelete(g)}
-                        className="text-xs text-slate-400 hover:text-red-600 hover:underline"
+                        className="text-xs text-ink-faint hover:text-rose-400 hover:underline"
                       >
                         Delete
                       </button>
@@ -124,8 +124,8 @@ export default function GrievanceList({ grievances, viewer, onUpdate, onEdit, on
 function Field({ label, value }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-wide text-slate-400">{label}</dt>
-      <dd className="text-slate-700">{value}</dd>
+      <dt className="text-xs uppercase tracking-wide text-ink-faint">{label}</dt>
+      <dd className="text-ink">{value}</dd>
     </div>
   )
 }

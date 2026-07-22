@@ -66,8 +66,8 @@ export default function Analytics() {
 
   return (
     <Layout>
-      <h1 className="text-xl font-semibold text-slate-900">Analytics</h1>
-      <p className="text-sm text-slate-500">Team-wide trends across performance, grievances, leave and recognition.</p>
+      <h1 className="text-xl font-semibold text-ink">Analytics</h1>
+      <p className="text-sm text-ink-muted">Team-wide trends across performance, grievances, leave and recognition.</p>
 
       <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard label="Team Size" value={summary.teamSize} />
@@ -86,7 +86,7 @@ export default function Analytics() {
         </Section>
 
         <Section title="Headcount by department">
-          <BarChart data={derived.departments} color="#6B3FA0" />
+          <BarChart data={derived.departments} color="#9B84FF" />
         </Section>
 
         <Section title="Recognitions (last 6 months)">
@@ -94,19 +94,19 @@ export default function Analytics() {
         </Section>
 
         <Section title="1:1 meetings">
-          <DonutChart data={derived.oneOnOnes} colors={['#00965E', '#CBD5E1']} />
+          <DonutChart data={derived.oneOnOnes} colors={['#00C27A', '#64748B']} />
         </Section>
 
         <Section title="Goals by status">
-          <BarChart data={derived.goalStatus} color="#6B3FA0" />
+          <BarChart data={derived.goalStatus} color="#9B84FF" />
         </Section>
 
         <div className="lg:col-span-2">
           <Section title="Leave: days taken vs entitlement (team)">
             <GroupedBarChart
               data={derived.leave}
-              seriesA={{ key: 'taken', label: 'Taken', color: '#00965E' }}
-              seriesB={{ key: 'entitled', label: 'Entitled', color: '#CBD5E1' }}
+              seriesA={{ key: 'taken', label: 'Taken', color: '#00C27A' }}
+              seriesB={{ key: 'entitled', label: 'Entitled', color: '#64748B' }}
             />
           </Section>
         </div>

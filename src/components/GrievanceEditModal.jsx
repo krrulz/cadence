@@ -31,7 +31,7 @@ export default function GrievanceEditModal({ record, onClose, onSaved }) {
     <Modal title="Edit Grievance" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block text-sm">
-          <span className="font-medium text-slate-700">Category</span>
+          <span className="font-medium text-ink">Category</span>
           <select value={category} onChange={(e) => setCategory(e.target.value)} className="input mt-1">
             {GRIEVANCE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -41,7 +41,7 @@ export default function GrievanceEditModal({ record, onClose, onSaved }) {
           </select>
         </label>
         <LabeledTextarea label="Description" required value={description} onChange={setDescription} />
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-rose-400">{error}</p>}
         <FormActions submitting={submitting} onCancel={onClose} />
       </form>
     </Modal>

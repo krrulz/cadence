@@ -69,28 +69,28 @@ export default function OneOnOnes({ employeeId, viewer, canSchedule, employeeEma
       addLabel="+ Schedule 1:1"
     >
       {loading ? (
-        <p className="py-6 text-center text-slate-400">Loading…</p>
+        <p className="py-6 text-center text-ink-faint">Loading…</p>
       ) : items.length === 0 ? (
-        <p className="py-6 text-center text-slate-400">No 1:1s yet.</p>
+        <p className="py-6 text-center text-ink-faint">No 1:1s yet.</p>
       ) : (
         <div className="space-y-2">
           {items.map((o) => (
-            <div key={o.id} className="rounded-md border border-slate-200">
+            <div key={o.id} className="rounded-md border border-surface-border">
               <button
                 type="button"
                 onClick={() => setOpenId(openId === o.id ? null : o.id)}
                 className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
               >
                 <span className="min-w-0">
-                  <span className="font-medium text-slate-800">{o.title || '1:1 Meeting'}</span>
-                  <span className="ml-2 text-sm text-slate-500">{o.date}</span>
+                  <span className="font-medium text-ink">{o.title || '1:1 Meeting'}</span>
+                  <span className="ml-2 text-sm text-ink-muted">{o.date}</span>
                   {o.completed && (
-                    <span className="ml-2 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-800">
+                    <span className="ml-2 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
                       ✓ Completed
                     </span>
                   )}
                 </span>
-                <span className="text-slate-400">{openId === o.id ? '▲' : '▼'}</span>
+                <span className="text-ink-faint">{openId === o.id ? '▲' : '▼'}</span>
               </button>
               {openId === o.id && (
                 <OneOnOnePanel
@@ -326,13 +326,13 @@ function OneOnOnePanel({ oneOnOne, employeeId, viewer, employeeEmail, employeeNa
   }
 
   return (
-    <div className="space-y-4 border-t border-slate-100 p-3">
+    <div className="space-y-4 border-t border-white/5 p-3">
       {loading ? (
-        <p className="py-2 text-sm text-slate-400">Loading…</p>
+        <p className="py-2 text-sm text-ink-faint">Loading…</p>
       ) : (
         <>
           <div>
-            <label className="text-xs font-medium uppercase tracking-wide text-slate-500">Agenda (shared)</label>
+            <label className="text-xs font-medium uppercase tracking-wide text-ink-muted">Agenda (shared)</label>
             <textarea
               value={agenda}
               onChange={(e) => setAgenda(e.target.value)}
@@ -344,23 +344,23 @@ function OneOnOnePanel({ oneOnOne, employeeId, viewer, employeeEmail, employeeNa
           </div>
 
           <div>
-            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Action items</p>
+            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-ink-muted">Action items</p>
             <div className="space-y-1">
               {actions.map((item) => (
                 <div key={item.id} className="flex flex-wrap items-center gap-2 text-sm">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 accent-brand"
+                    className="h-4 w-4 accent-mint"
                     checked={!!item.done}
                     onChange={() => toggleAction(item)}
                   />
-                  <span className={item.done ? 'text-slate-400 line-through' : 'text-slate-700'}>{item.text}</span>
-                  <span className="rounded-full bg-slate-100 px-1.5 text-[10px] uppercase text-slate-500">
+                  <span className={item.done ? 'text-ink-faint line-through' : 'text-ink'}>{item.text}</span>
+                  <span className="rounded-full bg-white/10 px-1.5 text-[10px] uppercase text-ink-muted">
                     {item.owner}
                   </span>
                   {item.goalObjective && (
                     <span
-                      className="rounded-full bg-accent-100 px-1.5 text-[10px] text-accent-800"
+                      className="rounded-full bg-accent/20 px-1.5 text-[10px] text-accent-200"
                       title={`Linked to goal: ${item.goalObjective}`}
                     >
                       🎯 {item.goalObjective}
@@ -370,7 +370,7 @@ function OneOnOnePanel({ oneOnOne, employeeId, viewer, employeeEmail, employeeNa
                     <button
                       type="button"
                       onClick={() => removeAction(item)}
-                      className="text-xs text-slate-400 hover:text-red-600"
+                      className="text-xs text-ink-faint hover:text-rose-400"
                       aria-label="Delete action item"
                     >
                       ✕
@@ -378,7 +378,7 @@ function OneOnOnePanel({ oneOnOne, employeeId, viewer, employeeEmail, employeeNa
                   )}
                 </div>
               ))}
-              {actions.length === 0 && <p className="text-sm text-slate-400">No action items.</p>}
+              {actions.length === 0 && <p className="text-sm text-ink-faint">No action items.</p>}
             </div>
 
             <form onSubmit={addAction} className="mt-2 space-y-2">
@@ -394,7 +394,7 @@ function OneOnOnePanel({ oneOnOne, employeeId, viewer, employeeEmail, employeeNa
                 </button>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <label className="text-xs text-slate-500">Link to goal:</label>
+                <label className="text-xs text-ink-muted">Link to goal:</label>
                 <select
                   value={linkGoalId}
                   onChange={(e) => setLinkGoalId(e.target.value)}
@@ -421,30 +421,30 @@ function OneOnOnePanel({ oneOnOne, employeeId, viewer, employeeEmail, employeeNa
           </div>
 
           <div>
-            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Notes</p>
+            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-ink-muted">Notes</p>
             <div className="space-y-2">
               {notes.map((note) => (
-                <div key={note.id} className="rounded-md bg-slate-50 p-2 text-sm">
+                <div key={note.id} className="rounded-md bg-white/5 p-2 text-sm">
                   <div className="mb-0.5 flex items-center justify-between gap-2">
-                    <span className="text-xs font-medium text-slate-600">
+                    <span className="text-xs font-medium text-ink-muted">
                       {note.authorName}
-                      <span className="ml-1 text-slate-400">· {note.authorRole}</span>
+                      <span className="ml-1 text-ink-faint">· {note.authorRole}</span>
                     </span>
                     {(note.authorUid === viewer.uid || viewer.role === 'admin') && (
                       <button
                         type="button"
                         onClick={() => removeNote(note)}
-                        className="text-xs text-slate-400 hover:text-red-600"
+                        className="text-xs text-ink-faint hover:text-rose-400"
                         aria-label="Delete note"
                       >
                         ✕
                       </button>
                     )}
                   </div>
-                  <p className="whitespace-pre-wrap text-slate-700">{note.text}</p>
+                  <p className="whitespace-pre-wrap text-ink">{note.text}</p>
                 </div>
               ))}
-              {notes.length === 0 && <p className="text-sm text-slate-400">No notes yet.</p>}
+              {notes.length === 0 && <p className="text-sm text-ink-faint">No notes yet.</p>}
             </div>
             <form onSubmit={addNote} className="mt-2 flex gap-2">
               <input
@@ -460,17 +460,17 @@ function OneOnOnePanel({ oneOnOne, employeeId, viewer, employeeEmail, employeeNa
           </div>
 
           {/* Completion + minutes email */}
-          <div className="border-t border-slate-100 pt-3">
+          <div className="border-t border-white/5 pt-3">
             {oneOnOne.completed ? (
-              <p className="text-xs font-medium text-green-700">
+              <p className="text-xs font-medium text-emerald-300">
                 ✓ Completed{oneOnOne.completedAt ? ` on ${oneOnOne.completedAt.slice(0, 10)}` : ''}
               </p>
             ) : completing ? (
-              <div className="space-y-2 rounded-md bg-slate-50 p-3">
-                <label className="flex items-center gap-2 text-sm text-slate-700">
+              <div className="space-y-2 rounded-md bg-white/5 p-3">
+                <label className="flex items-center gap-2 text-sm text-ink">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 accent-brand"
+                    className="h-4 w-4 accent-mint"
                     checked={emailMinutes}
                     onChange={(e) => setEmailMinutes(e.target.checked)}
                   />
@@ -493,8 +493,8 @@ function OneOnOnePanel({ oneOnOne, employeeId, viewer, employeeEmail, employeeNa
           </div>
 
           {canDelete && (
-            <div className="flex justify-end border-t border-slate-100 pt-2">
-              <button type="button" onClick={deleteMeeting} className="text-xs text-red-600 hover:underline">
+            <div className="flex justify-end border-t border-white/5 pt-2">
+              <button type="button" onClick={deleteMeeting} className="text-xs text-rose-400 hover:underline">
                 Delete this 1:1
               </button>
             </div>

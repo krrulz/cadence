@@ -57,7 +57,7 @@ export default function EditLeaveModal({ employee, leaveRecords, onClose, onSave
   return (
     <Modal title={`Leave entitlements — ${employee.name}`} onClose={onClose} wide>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
+        <p className="rounded-md bg-white/5 p-3 text-sm text-ink-muted">
           <strong>Entitlement</strong> is the full yearly allowance. <strong>Already taken</strong> is leave used before
           this was tracked in Cadence — set it when adopting mid-year, then reset it to 0 at the start of a new year.
           <strong> Carry-over</strong> is unused leave brought in from last year. Leave approved inside Cadence is
@@ -67,7 +67,7 @@ export default function EditLeaveModal({ employee, leaveRecords, onClose, onSave
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+              <tr className="border-b border-surface-border text-xs uppercase tracking-wide text-ink-muted">
                 <th className="py-2 pr-4">Leave type</th>
                 <th className="py-2 pr-4">Entitlement</th>
                 <th className="py-2 pr-4">Carry-over</th>
@@ -80,8 +80,8 @@ export default function EditLeaveModal({ employee, leaveRecords, onClose, onSave
               {LEAVE_TYPES.map((type) => {
                 const row = preview.byType[type]
                 return (
-                  <tr key={type} className="border-b border-slate-100">
-                    <td className="py-2 pr-4 font-medium text-slate-700">{type}</td>
+                  <tr key={type} className="border-b border-white/5">
+                    <td className="py-2 pr-4 font-medium text-ink">{type}</td>
                     <td className="py-2 pr-4">
                       <input
                         type="number"
@@ -115,8 +115,8 @@ export default function EditLeaveModal({ employee, leaveRecords, onClose, onSave
                         aria-label={`${type} already taken`}
                       />
                     </td>
-                    <td className="py-2 pr-4 text-slate-500">{row.takenInApp}</td>
-                    <td className={`py-2 pr-4 font-semibold ${row.balance < 0 ? 'text-red-600' : 'text-brand'}`}>
+                    <td className="py-2 pr-4 text-ink-muted">{row.takenInApp}</td>
+                    <td className={`py-2 pr-4 font-semibold ${row.balance < 0 ? 'text-rose-400' : 'text-mint'}`}>
                       {row.balance}
                     </td>
                   </tr>
@@ -127,13 +127,13 @@ export default function EditLeaveModal({ employee, leaveRecords, onClose, onSave
         </div>
 
         {preview.total < 0 && (
-          <p className="text-sm text-amber-700">
+          <p className="text-sm text-amber-300">
             Some balances are negative — that means more leave is recorded as taken than the entitlement allows. Check
             the numbers unless that's intentional.
           </p>
         )}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-rose-400">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="btn-secondary">
