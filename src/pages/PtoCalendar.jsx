@@ -34,10 +34,28 @@ const SWATCHES = [
   'bg-teal-100 text-teal-800',
   'bg-fuchsia-100 text-fuchsia-800',
 ]
-function swatchFor(key) {
+// Same palette order as SWATCHES, but as solid dot colours for the compact
+// mobile cells (a name pill can't fit in a ~50px day cell).
+const DOT_SWATCHES = [
+  'bg-brand-300',
+  'bg-accent-300',
+  'bg-brand-400',
+  'bg-accent-400',
+  'bg-emerald-400',
+  'bg-violet-400',
+  'bg-teal-400',
+  'bg-fuchsia-400',
+]
+function hashKey(key) {
   let hash = 0
   for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0
-  return SWATCHES[hash % SWATCHES.length]
+  return hash
+}
+function swatchFor(key) {
+  return SWATCHES[hashKey(key) % SWATCHES.length]
+}
+function dotFor(key) {
+  return DOT_SWATCHES[hashKey(key) % DOT_SWATCHES.length]
 }
 
 export default function PtoCalendar() {
@@ -82,6 +100,25 @@ export default function PtoCalendar() {
   const byDate = useMemo(() => indexLeavesByDate(shown), [shown])
   const holidayByDate = useMemo(() => Object.fromEntries(holidays.map((h) => [h.date, h.name])), [holidays])
   const weeks = useMemo(() => monthMatrix(view.year, view.month), [view])
+
+  // Mobile agenda: entries touching the viewed month, since the compact phone
+  // grid only shows dots. ISO strings compare lexicographically.
+  const monthStartISO = toISO(new Date(view.year, view.month, 1))
+  const monthEndISO = toISO(new Date(view.year, view.month + 1, 0))
+  const monthAgenda = useMemo(
+    () =>
+      shown
+        .filter((l) => l.dateFrom && l.dateTo && l.dateFrom <= monthEndISO && l.dateTo >= monthStartISO)
+        .sort((a, b) => a.dateFrom.localeCompare(b.dateFrom)),
+    [shown, monthStartISO, monthEndISO],
+  )
+  const monthHolidays = useMemo(
+    () =>
+      holidays
+        .filter((h) => h.date >= monthStartISO && h.date <= monthEndISO)
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    [holidays, monthStartISO, monthEndISO],
+  )
 
   function step(delta) {
     setView((v) => {
@@ -133,12 +170,14 @@ export default function PtoCalendar() {
         {loading ? (
           <LoadingSpinner label="Loading leave…" />
         ) : (
-          <div className="overflow-x-auto">
-            <div className="min-w-[720px]">
+          <>
+            {/* Fluid 7-col grid: full pills on sm+, compact dot cells on phones. */}
+            <div className="min-w-0">
               <div className="grid grid-cols-7 border-b border-surface-border text-xs font-medium uppercase tracking-wide text-ink-muted">
                 {WEEKDAY_LABELS.map((d) => (
-                  <div key={d} className="px-2 py-2">
-                    {d}
+                  <div key={d} className="px-1 py-2 text-center sm:px-2 sm:text-left">
+                    <span className="sm:hidden">{d[0]}</span>
+                    <span className="hidden sm:inline">{d}</span>
                   </div>
                 ))}
               </div>
@@ -162,7 +201,39 @@ export default function PtoCalendar() {
                 })}
               </div>
             </div>
-          </div>
+
+            {/* Phone agenda — the dot cells can't carry names, so list the
+                month's entries beneath the grid. Hidden on sm+. */}
+            <div className="mt-4 border-t border-surface-border pt-3 sm:hidden">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-faint">This month</p>
+              {monthAgenda.length === 0 && monthHolidays.length === 0 ? (
+                <p className="text-sm text-ink-faint">Nothing scheduled this month.</p>
+              ) : (
+                <ul className="space-y-1.5 text-sm">
+                  {monthHolidays.map((h) => (
+                    <li key={h.id} className="flex items-center gap-2">
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />
+                      <span className="text-ink-muted">{h.date.slice(5)}</span>
+                      <span className="truncate text-amber-300">{h.name}</span>
+                    </li>
+                  ))}
+                  {monthAgenda.map((l) => (
+                    <li key={l.id} className="flex items-center gap-2">
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${dotFor(l.employeeId)}`} />
+                      <span className="whitespace-nowrap text-ink-muted">
+                        {l.dateFrom.slice(5)}
+                        {l.dateTo !== l.dateFrom ? `–${l.dateTo.slice(5)}` : ''}
+                      </span>
+                      <span className="truncate text-ink">
+                        {isAdmin ? namesByUid[l.employeeId] || 'Unknown' : l.leaveType}
+                      </span>
+                      {l.status === 'Pending' && <span className="shrink-0 text-xs text-ink-faint">(pending)</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
         )}
       </div>
 
@@ -241,10 +312,13 @@ function DayCell({ date, iso, inMonth, dayLeaves, holidayName, namesByUid, isAdm
   const MAX = 3
   const visible = dayLeaves.slice(0, MAX)
   const extra = dayLeaves.length - visible.length
+  const MAX_DOTS = 4
+  const dotLeaves = dayLeaves.slice(0, MAX_DOTS)
+  const extraDots = dayLeaves.length - dotLeaves.length
 
   return (
     <div
-      className={`min-h-[92px] border-b border-r border-white/5 p-1.5 ${
+      className={`min-h-[52px] border-b border-r border-white/5 p-1 sm:min-h-[92px] sm:p-1.5 ${
         holidayName && inMonth
           ? 'bg-amber-500/10'
           : inMonth
@@ -254,38 +328,56 @@ function DayCell({ date, iso, inMonth, dayLeaves, holidayName, namesByUid, isAdm
             : 'bg-white/[0.03] text-ink-faint'
       }`}
     >
-      <div className="mb-1 flex items-center justify-between">
+      <div className="mb-1 flex items-center justify-center sm:justify-between">
         <span
-          className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs ${
+          className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] sm:h-6 sm:w-6 sm:text-xs ${
             isToday(date) ? 'bg-brand font-semibold text-white' : inMonth ? 'text-ink-muted' : 'text-ink-faint'
           }`}
         >
           {date.getDate()}
         </span>
       </div>
-      {holidayName && inMonth && (
-        <div className="mb-1 truncate rounded bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-medium text-amber-300" title={holidayName}>
-          {holidayName}
+
+      {/* Phone: dots only — names live in the agenda list below the grid. */}
+      <div className="flex flex-wrap items-center justify-center gap-0.5 sm:hidden">
+        {holidayName && inMonth && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />}
+        {dotLeaves.map((leave) => (
+          <span
+            key={leave.id}
+            className={`h-1.5 w-1.5 rounded-full ${dotFor(leave.employeeId)} ${
+              leave.status === 'Pending' ? 'opacity-50' : ''
+            }`}
+          />
+        ))}
+        {extraDots > 0 && <span className="text-[9px] leading-none text-ink-faint">+{extraDots}</span>}
+      </div>
+
+      {/* sm+: full pills as before. */}
+      <div className="hidden sm:block">
+        {holidayName && inMonth && (
+          <div className="mb-1 truncate rounded bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-medium text-amber-300" title={holidayName}>
+            {holidayName}
+          </div>
+        )}
+        <div className="space-y-1">
+          {visible.map((leave) => {
+            // Admin cares who's off; employee cares which leave type.
+            const label = isAdmin ? namesByUid[leave.employeeId] || 'Unknown' : leave.leaveType
+            const pending = leave.status === 'Pending'
+            return (
+              <div
+                key={leave.id}
+                title={`${namesByUid[leave.employeeId] || 'Unknown'} — ${leave.leaveType}${pending ? ' (pending)' : ''}`}
+                className={`truncate rounded px-1.5 py-0.5 text-[11px] leading-tight ${swatchFor(leave.employeeId)} ${
+                  pending ? 'opacity-60 ring-1 ring-inset ring-white/20' : ''
+                }`}
+              >
+                {label}
+              </div>
+            )
+          })}
+          {extra > 0 && <div className="px-1.5 text-[11px] text-ink-faint">+{extra} more</div>}
         </div>
-      )}
-      <div className="space-y-1">
-        {visible.map((leave) => {
-          // Admin cares who's off; employee cares which leave type.
-          const label = isAdmin ? namesByUid[leave.employeeId] || 'Unknown' : leave.leaveType
-          const pending = leave.status === 'Pending'
-          return (
-            <div
-              key={leave.id}
-              title={`${namesByUid[leave.employeeId] || 'Unknown'} — ${leave.leaveType}${pending ? ' (pending)' : ''}`}
-              className={`truncate rounded px-1.5 py-0.5 text-[11px] leading-tight ${swatchFor(leave.employeeId)} ${
-                pending ? 'opacity-60 ring-1 ring-inset ring-white/20' : ''
-              }`}
-            >
-              {label}
-            </div>
-          )
-        })}
-        {extra > 0 && <div className="px-1.5 text-[11px] text-ink-faint">+{extra} more</div>}
       </div>
     </div>
   )
