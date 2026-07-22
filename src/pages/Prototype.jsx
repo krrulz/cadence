@@ -178,7 +178,7 @@ function Stat({ label, value, delta, up, warn, spark }) {
           <defs>
             <linearGradient id="sg" x1="0" x2="1">
               <stop offset="0" stopColor="#00C27A" />
-              <stop offset="1" stopColor="#7C5CFF" />
+              <stop offset="1" stopColor="#3BE3B0" />
             </linearGradient>
           </defs>
         </svg>
@@ -241,13 +241,14 @@ function Legend({ c, k, v }) {
 }
 
 function avatarGrad(name) {
+  // Green-forward: mostly green/teal, violet only as an occasional accent.
   const grads = [
-    'linear-gradient(135deg,#00C27A,#12B5C9)',
-    'linear-gradient(135deg,#7C5CFF,#C46BFF)',
-    'linear-gradient(135deg,#12B5C9,#7C5CFF)',
+    'linear-gradient(135deg,#00E28E,#12B5C9)',
+    'linear-gradient(135deg,#00C27A,#0EA5A5)',
+    'linear-gradient(135deg,#12B5C9,#00C27A)',
+    'linear-gradient(135deg,#00E28E,#34D399)',
     'linear-gradient(135deg,#00C27A,#7C5CFF)',
-    'linear-gradient(135deg,#F59E0B,#EF4444)',
-    'linear-gradient(135deg,#C46BFF,#00C27A)',
+    'linear-gradient(135deg,#0EA5A5,#00E28E)',
   ]
   let h = 0
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
@@ -319,11 +320,11 @@ function PrototypeStyles() {
 .aur-glow{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0}
 .aur-glow-a{top:-120px;left:-80px;width:420px;height:420px;background:rgba(0,194,122,.28)}
 .aur-glow-b{bottom:-140px;right:-60px;width:460px;height:460px;background:rgba(124,92,255,.28)}
-.aur-shell{position:relative;z-index:1;display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+.aur-shell{position:relative;z-index:1;display:grid;grid-template-columns:220px 1fr;min-height:100vh}
 @media(max-width:820px){.aur-shell{grid-template-columns:1fr}.aur-side{display:none}}
 
 /* sidebar */
-.aur-side{display:flex;flex-direction:column;gap:8px;padding:22px 16px;
+.aur-side{display:flex;flex-direction:column;gap:6px;padding:16px 12px;
   border-right:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);backdrop-filter:blur(12px)}
 .aur-brand{display:flex;align-items:center;gap:11px;padding:6px 8px 18px}
 .aur-logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:800;color:#04120c;
@@ -334,8 +335,9 @@ function PrototypeStyles() {
   color:#9AA6C0;font-size:14px;font-weight:500;text-decoration:none;transition:all .15s}
 .aur-navitem svg{width:18px;height:18px;opacity:.85}
 .aur-navitem:hover{background:rgba(255,255,255,.05);color:#E7ECF5}
-.aur-navitem.is-active{color:#fff;background:linear-gradient(90deg,rgba(0,194,122,.20),rgba(124,92,255,.20));
-  border:1px solid rgba(124,92,255,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.aur-navitem.is-active{color:#fff;background:linear-gradient(90deg,rgba(0,226,142,.22),rgba(0,194,122,.08));
+  border:1px solid rgba(0,226,142,.38);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.aur-navitem.is-active svg{color:#3BE8A6;opacity:1}
 .aur-userchip{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;
   background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)}
 .aur-userchip-txt{display:flex;flex-direction:column;line-height:1.25}
@@ -346,53 +348,53 @@ function PrototypeStyles() {
 .aur-av-sm{width:30px;height:30px;font-size:11px}
 
 /* main */
-.aur-main{padding:26px 30px 40px;min-width:0}
-.aur-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.aur-main{padding:18px 22px 30px;min-width:0}
+.aur-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap}
 .aur-kicker{margin:0;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7E8AA8;font-weight:600}
-.aur-h1{margin:4px 0 0;font-size:28px;font-weight:800;letter-spacing:-.02em}
+.aur-h1{margin:3px 0 0;font-size:23px;font-weight:800;letter-spacing:-.02em}
 .aur-topright{display:flex;align-items:center;gap:12px}
 .aur-search{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:11px;
   background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);color:#8b97b3}
 .aur-search svg{width:16px;height:16px}
 .aur-search input{background:transparent;border:0;outline:0;color:#E7ECF5;font-size:13px;width:130px}
 .aur-search kbd{font-size:10px;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1)}
-.aur-btn{border:0;cursor:pointer;font-weight:600;font-size:13px;color:#04120c;padding:10px 16px;border-radius:11px;
-  background:linear-gradient(135deg,#00E28E,#7C5CFF);box-shadow:0 8px 22px -8px rgba(124,92,255,.7);transition:transform .15s}
+.aur-btn{border:0;cursor:pointer;font-weight:600;font-size:13px;color:#04120c;padding:9px 15px;border-radius:10px;
+  background:linear-gradient(135deg,#00E28E,#12B981);box-shadow:0 8px 22px -8px rgba(0,226,142,.6);transition:transform .15s}
 .aur-btn:hover{transform:translateY(-1px)}
 
 /* glass card */
-.aur-card{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);border-radius:18px;
+.aur-card{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);border-radius:14px;
   backdrop-filter:blur(14px);box-shadow:0 20px 50px -24px rgba(0,0,0,.7)}
-.aur-card-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 6px}
+.aur-card-head{display:flex;align-items:center;justify-content:space-between;padding:13px 15px 4px}
 .aur-card-head h2{margin:0;font-size:15px;font-weight:700}
 .aur-muted{color:#8b97b3;font-size:13px}
 
 /* stats */
-.aur-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.aur-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
 @media(max-width:900px){.aur-stats{grid-template-columns:repeat(2,1fr)}}
-.aur-stat{position:relative;padding:16px 18px;overflow:hidden}
+.aur-stat{position:relative;padding:12px 14px;overflow:hidden}
 .aur-stat-label{margin:0;font-size:12px;color:#8b97b3;font-weight:500}
-.aur-stat-value{margin:6px 0 2px;font-size:32px;font-weight:800;letter-spacing:-.02em;
-  background:linear-gradient(90deg,#00E28E,#9B84FF);-webkit-background-clip:text;background-clip:text;color:transparent}
+.aur-stat-value{margin:4px 0 2px;font-size:26px;font-weight:800;letter-spacing:-.02em;
+  background:linear-gradient(90deg,#00E28E,#3BE3B0);-webkit-background-clip:text;background-clip:text;color:transparent}
 .aur-stat-delta{margin:0;font-size:11.5px;color:#8b97b3}
 .aur-stat-delta.is-up{color:#5EF2B0}.aur-stat-delta.is-warn{color:#FFB27A}
 .aur-spark{position:absolute;right:14px;top:16px;width:64px;height:22px;opacity:.9}
 
 /* columns */
-.aur-cols{display:grid;grid-template-columns:1fr 320px;gap:16px}
+.aur-cols{display:grid;grid-template-columns:1fr 300px;gap:12px}
 @media(max-width:1040px){.aur-cols{grid-template-columns:1fr}}
 
 /* table */
 .aur-table{padding:6px 8px 12px}
 .aur-tr{display:grid;grid-template-columns:1.6fr 1fr .9fr .6fr 1.3fr;align-items:center;gap:10px;
-  padding:11px 12px;border-radius:12px}
+  padding:8px 10px;border-radius:10px}
 .aur-tr:not(.aur-th):hover{background:rgba(255,255,255,.04)}
 .aur-th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#7E8AA8;font-weight:600}
 .aur-person{display:flex;align-items:center;gap:10px;min-width:0}
 .aur-person b{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .aur-rating{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
 .aur-ratebar{width:46px;height:5px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
-.aur-ratebar i{display:block;height:100%;background:linear-gradient(90deg,#00C27A,#7C5CFF)}
+.aur-ratebar i{display:block;height:100%;background:linear-gradient(90deg,#00C27A,#3BE3B0)}
 .aur-tags{display:flex;flex-wrap:wrap;gap:5px}
 .aur-tags em{font-style:normal;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px}
 
@@ -407,7 +409,7 @@ function PrototypeStyles() {
 .aur-leg b{margin-left:auto;color:#fff}
 .aur-pulse{border-top:1px solid rgba(255,255,255,.08);margin:0 16px;padding:14px 4px 4px}
 .aur-pulsebars{display:flex;align-items:flex-end;gap:8px;height:56px;margin-top:10px}
-.aur-pulsebars span{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#7C5CFF,rgba(0,194,122,.5))}
+.aur-pulsebars span{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#00E28E,rgba(0,194,122,.35))}
 `}</style>
   )
 }
