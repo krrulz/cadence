@@ -40,6 +40,14 @@ export default function App() {
         }
       />
       <Route
+        path="/me/:section"
+        element={
+          <ProtectedRoute>
+            <EmployeeDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/calendar"
         element={
           <ProtectedRoute>

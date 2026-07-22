@@ -1,16 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  LayoutDashboard,
-  Trophy,
-  Target,
-  Award,
-  MessageSquare,
-  Users,
-  AlertTriangle,
-  CalendarDays,
-  ChevronRight,
-  CheckCircle2,
-} from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { ChevronRight, CheckCircle2 } from 'lucide-react'
 import Layout from '../components/Layout.jsx'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import StatusBadge from '../components/StatusBadge.jsx'
@@ -50,22 +40,28 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10)
 }
 
-// Left-pane sections for the employee workspace.
-const VIEWS = [
-  { key: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { key: 'performance', label: 'Performance', icon: Trophy },
-  { key: 'goals', label: 'Goals & OKRs', icon: Target },
-  { key: 'recognitions', label: 'Recognitions', icon: Award },
-  { key: 'feedback', label: 'Feedback', icon: MessageSquare },
-  { key: 'oneOnOnes', label: '1:1 Meetings', icon: Users },
-  { key: 'grievances', label: 'Grievances', icon: AlertTriangle },
-  { key: 'leave', label: 'Leave', icon: CalendarDays },
-]
+// URL slug (/me/:section) -> internal view key. The section links themselves
+// live in the app sidebar (Layout), nested beneath "My Dashboard"; /me itself
+// shows the Overview (analytics + alerts).
+const SLUG_TO_VIEW = {
+  performance: 'performance',
+  goals: 'goals',
+  recognitions: 'recognitions',
+  feedback: 'feedback',
+  'one-on-ones': 'oneOnOnes',
+  grievances: 'grievances',
+  leave: 'leave',
+}
+const VIEW_TO_SLUG = Object.fromEntries(Object.entries(SLUG_TO_VIEW).map(([slug, v]) => [v, slug]))
 
 export default function EmployeeDashboard() {
   const { user, profile } = useAuth()
+  const { section } = useParams()
+  const navigate = useNavigate()
+  // Which section to render comes from the URL; unknown/absent -> Overview.
+  const view = SLUG_TO_VIEW[section] || 'overview'
+  const goTo = (v) => navigate(v === 'overview' || !VIEW_TO_SLUG[v] ? '/me' : `/me/${VIEW_TO_SLUG[v]}`)
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState('overview')
   const [records, setRecords] = useState({
     performance: [],
     grievances: [],
@@ -157,30 +153,11 @@ export default function EmployeeDashboard() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[210px_1fr]">
-        {/* Left section nav */}
-        <nav className="card flex flex-row gap-1 overflow-x-auto p-2 lg:h-fit lg:flex-col">
-          {VIEWS.map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              onClick={() => setView(v.key)}
-              className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                view === v.key
-                  ? 'border border-mint/35 bg-gradient-to-r from-mint/20 to-mint-deep/10 text-white'
-                  : 'text-ink-muted hover:bg-white/5 hover:text-ink'
-              }`}
-            >
-              <v.icon size={17} />
-              <span>{v.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        {/* Right content pane */}
-        <div className="min-w-0 space-y-6">
+      {/* Section content — which section is shown is driven by the app
+          sidebar (Layout), where the sections sit beneath "My Dashboard". */}
+      <div className="mt-6 space-y-6">
           {view === 'overview' && (
-            <OverviewView records={records} leaveBalance={leaveBalance} onGoTo={setView} />
+            <OverviewView records={records} leaveBalance={leaveBalance} onGoTo={goTo} />
           )}
 
           {view === 'performance' && (
@@ -300,7 +277,6 @@ export default function EmployeeDashboard() {
               </Section>
             </>
           )}
-        </div>
       </div>
 
       {modal === 'grievance' && (

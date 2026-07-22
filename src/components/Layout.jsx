@@ -1,6 +1,21 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { LayoutGrid, BarChart3, CalendarDays, Link2, KeyRound, LogOut, Menu, X } from 'lucide-react'
+import {
+  LayoutGrid,
+  BarChart3,
+  CalendarDays,
+  Link2,
+  KeyRound,
+  LogOut,
+  Menu,
+  X,
+  Trophy,
+  Target,
+  Award,
+  MessageSquare,
+  Users,
+  AlertTriangle,
+} from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import ChangePasswordModal from './ChangePasswordModal.jsx'
 import Avatar from './Avatar.jsx'
@@ -11,6 +26,19 @@ const NAV = [
   { to: '/analytics', label: 'Analytics', icon: BarChart3, adminOnly: true },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays },
   { to: '/links', label: 'Links', icon: Link2 },
+]
+
+// Employee workspace sections, shown nested beneath "My Dashboard".
+// "/me" itself is the Overview (analytics + alerts); these swap the pane below
+// the profile header to the matching section.
+const EMPLOYEE_SECTIONS = [
+  { to: '/me/performance', label: 'Performance', icon: Trophy },
+  { to: '/me/goals', label: 'Goals & OKRs', icon: Target },
+  { to: '/me/recognitions', label: 'Recognitions', icon: Award },
+  { to: '/me/feedback', label: 'Feedback', icon: MessageSquare },
+  { to: '/me/one-on-ones', label: '1:1 Meetings', icon: Users },
+  { to: '/me/grievances', label: 'Grievances', icon: AlertTriangle },
+  { to: '/me/leave', label: 'Leave', icon: CalendarDays },
 ]
 
 export default function Layout({ children }) {
@@ -27,22 +55,46 @@ export default function Layout({ children }) {
   const navList = (
     <nav className="flex flex-col gap-1">
       {links.map((l) => (
-        <NavLink
-          key={l.to}
-          to={l.to}
-          end={l.end}
-          onClick={() => setMenuOpen(false)}
-          className={({ isActive }) =>
-            `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-              isActive
-                ? 'border border-mint/35 bg-gradient-to-r from-mint/20 to-mint-deep/10 text-white'
-                : 'text-ink-muted hover:bg-white/5 hover:text-ink'
-            }`
-          }
-        >
-          <l.icon size={18} />
-          <span>{l.label}</span>
-        </NavLink>
+        <Fragment key={l.to}>
+          <NavLink
+            to={l.to}
+            end={l.end}
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                isActive
+                  ? 'border border-mint/35 bg-gradient-to-r from-mint/20 to-mint-deep/10 text-white'
+                  : 'text-ink-muted hover:bg-white/5 hover:text-ink'
+              }`
+            }
+          >
+            <l.icon size={18} />
+            <span>{l.label}</span>
+          </NavLink>
+
+          {/* Employee sections live directly beneath My Dashboard. */}
+          {l.to === '/me' && !isAdmin && (
+            <div className="ml-4 flex flex-col gap-0.5 border-l border-surface-border pl-2">
+              {EMPLOYEE_SECTIONS.map((s) => (
+                <NavLink
+                  key={s.to}
+                  to={s.to}
+                  onClick={() => setMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors ${
+                      isActive
+                        ? 'border border-mint/35 bg-gradient-to-r from-mint/20 to-mint-deep/10 text-white'
+                        : 'text-ink-muted hover:bg-white/5 hover:text-ink'
+                    }`
+                  }
+                >
+                  <s.icon size={15} />
+                  <span>{s.label}</span>
+                </NavLink>
+              ))}
+            </div>
+          )}
+        </Fragment>
       ))}
     </nav>
   )
