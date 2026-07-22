@@ -7,11 +7,14 @@ import EmployeeDashboard from './pages/EmployeeDashboard.jsx'
 import PtoCalendar from './pages/PtoCalendar.jsx'
 import Links from './pages/Links.jsx'
 import Analytics from './pages/Analytics.jsx'
+import Prototype from './pages/Prototype.jsx'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      {/* Public design prototype (mock data) — no auth, isolated from the app. */}
+      <Route path="/prototype" element={<Prototype />} />
       <Route
         path="/"
         element={
