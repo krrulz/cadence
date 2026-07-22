@@ -1,4 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  LayoutDashboard,
+  Trophy,
+  Target,
+  Award,
+  MessageSquare,
+  Users,
+  AlertTriangle,
+  CalendarDays,
+  ChevronRight,
+  CheckCircle2,
+} from 'lucide-react'
 import Layout from '../components/Layout.jsx'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import StatusBadge from '../components/StatusBadge.jsx'
@@ -10,6 +22,8 @@ import OneOnOnes from '../components/OneOnOnes.jsx'
 import Goals from '../components/Goals.jsx'
 import GrievanceList from '../components/GrievanceList.jsx'
 import GrievanceEditModal from '../components/GrievanceEditModal.jsx'
+import Avatar from '../components/Avatar.jsx'
+import { GroupedBarChart, ColumnChart } from '../components/Charts.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import {
@@ -22,18 +36,36 @@ import {
   deleteRecord,
 } from '../lib/firestoreHelpers.js'
 import { computeLeaveBalance, sortByDateDesc, latestByDate, isReview } from '../lib/aggregate.js'
-import Avatar from '../components/Avatar.jsx'
+import { recognitionsByMonth } from '../lib/analytics.js'
 import { computeLeaveDays, holidaySet } from '../lib/leave.js'
 import { sendAlert, getAdminEmails } from '../lib/notify.js'
-import { GRIEVANCE_CATEGORIES, LEAVE_TYPES, PEER_RECOGNITION_TYPES } from '../lib/constants.js'
+import {
+  GRIEVANCE_CATEGORIES,
+  LEAVE_TYPES,
+  PEER_RECOGNITION_TYPES,
+  LOW_LEAVE_BALANCE_THRESHOLD,
+} from '../lib/constants.js'
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
 }
 
+// Left-pane sections for the employee workspace.
+const VIEWS = [
+  { key: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { key: 'performance', label: 'Performance', icon: Trophy },
+  { key: 'goals', label: 'Goals & OKRs', icon: Target },
+  { key: 'recognitions', label: 'Recognitions', icon: Award },
+  { key: 'feedback', label: 'Feedback', icon: MessageSquare },
+  { key: 'oneOnOnes', label: '1:1 Meetings', icon: Users },
+  { key: 'grievances', label: 'Grievances', icon: AlertTriangle },
+  { key: 'leave', label: 'Leave', icon: CalendarDays },
+]
+
 export default function EmployeeDashboard() {
   const { user, profile } = useAuth()
   const [loading, setLoading] = useState(true)
+  const [view, setView] = useState('overview')
   const [records, setRecords] = useState({
     performance: [],
     grievances: [],
@@ -42,6 +74,7 @@ export default function EmployeeDashboard() {
     feedback: [],
     leaves: [],
     holidays: [],
+    goals: [],
   })
   const [modal, setModal] = useState(null) // 'grievance' | 'leave' | 'achievement' | 'recognition'
   const [editAchievement, setEditAchievement] = useState(null) // achievement record being edited
@@ -60,16 +93,18 @@ export default function EmployeeDashboard() {
 
   const loadData = useCallback(async () => {
     setLoading(true)
-    const [performance, grievances, recognitions, recognitionsGiven, feedback, leaves, holidays] = await Promise.all([
-      getRecordsForEmployee('performance', user.uid),
-      getRecordsForEmployee('grievances', user.uid),
-      getRecordsForEmployee('recognitions', user.uid),
-      getRecordsByField('recognitions', 'givenByUid', user.uid),
-      getRecordsForEmployee('feedback', user.uid),
-      getRecordsForEmployee('leaves', user.uid),
-      getAllRecords('holidays'),
-    ])
-    setRecords({ performance, grievances, recognitions, recognitionsGiven, feedback, leaves, holidays })
+    const [performance, grievances, recognitions, recognitionsGiven, feedback, leaves, holidays, goals] =
+      await Promise.all([
+        getRecordsForEmployee('performance', user.uid),
+        getRecordsForEmployee('grievances', user.uid),
+        getRecordsForEmployee('recognitions', user.uid),
+        getRecordsByField('recognitions', 'givenByUid', user.uid),
+        getRecordsForEmployee('feedback', user.uid),
+        getRecordsForEmployee('leaves', user.uid),
+        getAllRecords('holidays'),
+        getRecordsForEmployee('goals', user.uid),
+      ])
+    setRecords({ performance, grievances, recognitions, recognitionsGiven, feedback, leaves, holidays, goals })
     setLoading(false)
   }, [user.uid])
 
@@ -96,7 +131,7 @@ export default function EmployeeDashboard() {
         <div className="flex items-center gap-4">
           <Avatar name={profile.name} colorKey={user.uid} size="lg" />
           <div className="min-w-0">
-            <h1 className="text-xl font-semibold text-ink">{profile.name}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-ink">{profile.name}</h1>
             <p className="text-sm text-ink-muted">
               {profile.department} · Joined {profile.dateOfJoining} · Manager {profile.managerName || '—'}
             </p>
@@ -122,112 +157,150 @@ export default function EmployeeDashboard() {
         </div>
       </div>
 
-      <div className="mt-6 space-y-6">
-        <Section
-          title="My Performance & Achievements"
-          onAdd={() => setModal('achievement')}
-          addLabel="+ Add Achievement"
-        >
-          <PerformanceTimeline
-            records={records.performance}
-            emptyText="No performance reviews or achievements logged yet."
-            onEditAchievement={(r) => setEditAchievement(r)}
-            onDelete={deleteAchievement}
-            canDelete={(r) => r.entryType === 'Achievement'}
-          />
-        </Section>
+      <div className="mt-6 grid gap-6 lg:grid-cols-[210px_1fr]">
+        {/* Left section nav */}
+        <nav className="card flex flex-row gap-1 overflow-x-auto p-2 lg:h-fit lg:flex-col">
+          {VIEWS.map((v) => (
+            <button
+              key={v.key}
+              type="button"
+              onClick={() => setView(v.key)}
+              className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                view === v.key
+                  ? 'border border-mint/35 bg-gradient-to-r from-mint/20 to-mint-deep/10 text-white'
+                  : 'text-ink-muted hover:bg-white/5 hover:text-ink'
+              }`}
+            >
+              <v.icon size={17} />
+              <span>{v.label}</span>
+            </button>
+          ))}
+        </nav>
 
-        <Goals employeeId={user.uid} viewer={{ uid: user.uid, name: profile.name, role: 'employee' }} />
+        {/* Right content pane */}
+        <div className="min-w-0 space-y-6">
+          {view === 'overview' && (
+            <OverviewView records={records} leaveBalance={leaveBalance} onGoTo={setView} />
+          )}
 
-        <Section title="My Recognitions" onAdd={() => setModal('recognition')} addLabel="+ Give Recognition">
-          <RecognitionsPanel received={records.recognitions} given={records.recognitionsGiven} />
-        </Section>
+          {view === 'performance' && (
+            <Section title="My Performance & Achievements" onAdd={() => setModal('achievement')} addLabel="+ Add Achievement">
+              <PerformanceTimeline
+                records={records.performance}
+                emptyText="No performance reviews or achievements logged yet."
+                onEditAchievement={(r) => setEditAchievement(r)}
+                onDelete={deleteAchievement}
+                canDelete={(r) => r.entryType === 'Achievement'}
+              />
+            </Section>
+          )}
 
-        <Section title="My Feedback">
-          <DataTable
-            headers={['Date', 'Type', 'Given By', 'Summary', 'Action Items', 'Follow-up']}
-            rows={sortByDateDesc(records.feedback, 'date').map((r) => [
-              r.date,
-              r.type,
-              r.givenBy,
-              r.summary,
-              r.actionItems,
-              r.followUpDate,
-            ])}
-            emptyText="No feedback logged yet."
-          />
-        </Section>
+          {view === 'goals' && (
+            <Goals employeeId={user.uid} viewer={{ uid: user.uid, name: profile.name, role: 'employee' }} />
+          )}
 
-        <OneOnOnes
-          employeeId={user.uid}
-          viewer={{ uid: user.uid, name: profile.name, role: 'employee' }}
-          canSchedule={false}
-          employeeEmail={profile.email}
-          employeeName={profile.name}
-        />
+          {view === 'recognitions' && (
+            <Section title="My Recognitions" onAdd={() => setModal('recognition')} addLabel="+ Give Recognition">
+              <RecognitionsPanel received={records.recognitions} given={records.recognitionsGiven} />
+            </Section>
+          )}
 
-        <Section title="My Grievances" onAdd={() => setModal('grievance')} addLabel="+ Raise Grievance">
-          <GrievanceList
-            grievances={records.grievances}
-            viewer={{ uid: user.uid, name: profile.name, role: 'employee' }}
-            onEdit={(g) => setEditGrievance(g)}
-            onDelete={deleteGrievance}
-          />
-        </Section>
+          {view === 'feedback' && (
+            <Section title="My Feedback">
+              <DataTable
+                headers={['Date', 'Type', 'Given By', 'Summary', 'Action Items', 'Follow-up']}
+                rows={sortByDateDesc(records.feedback, 'date').map((r) => [
+                  r.date,
+                  r.type,
+                  r.givenBy,
+                  r.summary,
+                  r.actionItems,
+                  r.followUpDate,
+                ])}
+                emptyText="No feedback logged yet."
+              />
+            </Section>
+          )}
 
-        <Section title="Leave Balance">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {leaveBalance &&
-              Object.entries(leaveBalance.byType).map(([type, v]) => (
-                <div key={type} className="card">
-                  <p className="text-xs font-medium text-ink-muted">{type}</p>
-                  <p className="mt-1 text-lg font-semibold text-mint">{v.balance}</p>
-                  <p className="text-xs text-ink-faint">
-                    {v.taken} taken / {v.entitlement} entitled
-                  </p>
-                  {v.carryOver > 0 && <p className="text-xs text-ink-faint">+{v.carryOver} carried over</p>}
+          {view === 'oneOnOnes' && (
+            <OneOnOnes
+              employeeId={user.uid}
+              viewer={{ uid: user.uid, name: profile.name, role: 'employee' }}
+              canSchedule={false}
+              employeeEmail={profile.email}
+              employeeName={profile.name}
+            />
+          )}
+
+          {view === 'grievances' && (
+            <Section title="My Grievances" onAdd={() => setModal('grievance')} addLabel="+ Raise Grievance">
+              <GrievanceList
+                grievances={records.grievances}
+                viewer={{ uid: user.uid, name: profile.name, role: 'employee' }}
+                onEdit={(g) => setEditGrievance(g)}
+                onDelete={deleteGrievance}
+              />
+            </Section>
+          )}
+
+          {view === 'leave' && (
+            <>
+              <Section title="Leave Balance">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  {leaveBalance &&
+                    Object.entries(leaveBalance.byType).map(([type, v]) => (
+                      <div key={type} className="rounded-xl border border-surface-border bg-white/[0.03] p-3">
+                        <p className="text-xs font-medium text-ink-muted">{type}</p>
+                        <p className="mt-1 text-lg font-semibold text-mint">{v.balance}</p>
+                        <p className="text-xs text-ink-faint">
+                          {v.taken} taken / {v.entitlement} entitled
+                        </p>
+                        {v.carryOver > 0 && <p className="text-xs text-ink-faint">+{v.carryOver} carried over</p>}
+                      </div>
+                    ))}
                 </div>
-              ))}
-          </div>
-        </Section>
+              </Section>
 
-        <Section title="My Leave Requests" onAdd={() => setModal('leave')} addLabel="+ Request Leave">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-surface-border text-xs uppercase tracking-wide text-ink-muted">
-                  <th className="py-2 pr-4">Type</th>
-                  <th className="py-2 pr-4">From</th>
-                  <th className="py-2 pr-4">To</th>
-                  <th className="py-2 pr-4">Days</th>
-                  <th className="py-2 pr-4">Status</th>
-                  <th className="py-2 pr-4">Approved By</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortByDateDesc(records.leaves, 'dateFrom').map((r) => (
-                  <tr key={r.id} className="border-b border-white/5">
-                    <td className="py-2 pr-4">{r.leaveType}</td>
-                    <td className="py-2 pr-4">{r.dateFrom}</td>
-                    <td className="py-2 pr-4">{r.dateTo}</td>
-                    <td className="py-2 pr-4">{r.numDays}</td>
-                    <td className="py-2 pr-4">
-                      <StatusBadge label={r.status} />
-                    </td>
-                    <td className="py-2 pr-4 text-ink-muted">{r.approvedBy || '—'}</td>
-                  </tr>
-                ))}
-                {records.leaves.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="py-6 text-center text-ink-faint">
-                      No leave requests yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Section>
+              <Section title="My Leave Requests" onAdd={() => setModal('leave')} addLabel="+ Request Leave">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-surface-border text-xs uppercase tracking-wide text-ink-muted">
+                        <th className="py-2 pr-4">Type</th>
+                        <th className="py-2 pr-4">From</th>
+                        <th className="py-2 pr-4">To</th>
+                        <th className="py-2 pr-4">Days</th>
+                        <th className="py-2 pr-4">Status</th>
+                        <th className="py-2 pr-4">Approved By</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortByDateDesc(records.leaves, 'dateFrom').map((r) => (
+                        <tr key={r.id} className="border-b border-white/5">
+                          <td className="py-2 pr-4">{r.leaveType}</td>
+                          <td className="py-2 pr-4">{r.dateFrom}</td>
+                          <td className="py-2 pr-4">{r.dateTo}</td>
+                          <td className="py-2 pr-4">{r.numDays}</td>
+                          <td className="py-2 pr-4">
+                            <StatusBadge label={r.status} />
+                          </td>
+                          <td className="py-2 pr-4 text-ink-muted">{r.approvedBy || '—'}</td>
+                        </tr>
+                      ))}
+                      {records.leaves.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="py-6 text-center text-ink-faint">
+                            No leave requests yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </Section>
+            </>
+          )}
+        </div>
       </div>
 
       {modal === 'grievance' && (
@@ -274,6 +347,122 @@ export default function EmployeeDashboard() {
         />
       )}
     </Layout>
+  )
+}
+
+function dotClass(tone) {
+  return tone === 'red'
+    ? 'bg-rose-400'
+    : tone === 'amber'
+      ? 'bg-amber-400'
+      : tone === 'violet'
+        ? 'bg-violet-400'
+        : 'bg-emerald-400'
+}
+
+// The default landing: personal analytics + an actionable alerts/reminders feed.
+// Each alert links to the relevant section via onGoTo.
+function OverviewView({ records, leaveBalance, onGoTo }) {
+  const today = todayISO()
+
+  const alerts = []
+  const pending = records.leaves.filter((l) => l.status === 'Pending')
+  if (pending.length)
+    alerts.push({ tone: 'amber', text: `${pending.length} leave request${pending.length > 1 ? 's' : ''} awaiting approval`, view: 'leave' })
+
+  const openGr = records.grievances.filter((g) => g.status !== 'Resolved')
+  if (openGr.length)
+    alerts.push({ tone: 'red', text: `${openGr.length} open grievance${openGr.length > 1 ? 's' : ''}`, view: 'grievances' })
+
+  ;(records.goals || [])
+    .filter((g) => g.status !== 'Completed' && g.dueDate && g.dueDate < today)
+    .slice(0, 3)
+    .forEach((g) => alerts.push({ tone: 'red', text: `Goal “${g.objective}” is overdue (was ${g.dueDate})`, view: 'goals' }))
+  ;(records.goals || [])
+    .filter((g) => g.status !== 'Completed' && g.dueDate && g.dueDate >= today)
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+    .slice(0, 3)
+    .forEach((g) => alerts.push({ tone: 'green', text: `Goal “${g.objective}” due ${g.dueDate}`, view: 'goals' }))
+
+  records.feedback
+    .filter((f) => f.followUpDate && f.followUpDate >= today)
+    .sort((a, b) => a.followUpDate.localeCompare(b.followUpDate))
+    .slice(0, 3)
+    .forEach((f) => alerts.push({ tone: 'violet', text: `Feedback follow-up due ${f.followUpDate}`, view: 'feedback' }))
+
+  if (leaveBalance)
+    Object.entries(leaveBalance.byType).forEach(([type, v]) => {
+      if (v.balance <= LOW_LEAVE_BALANCE_THRESHOLD)
+        alerts.push({ tone: 'amber', text: `Low ${type} balance: ${v.balance} left`, view: 'leave' })
+    })
+
+  const reviews = records.performance.filter(isReview)
+  const latest = reviews.length ? `${latestByDate(reviews, 'date').rating}/5` : '—'
+  const goalsInProgress = (records.goals || []).filter((g) => g.status !== 'Completed').length
+  const stats = [
+    { label: 'Latest rating', value: latest },
+    { label: 'Recognitions', value: records.recognitions.length },
+    { label: 'Goals in progress', value: goalsInProgress },
+    { label: 'Leave balance', value: leaveBalance ? leaveBalance.total : '—' },
+  ]
+
+  const leaveChart = leaveBalance
+    ? Object.entries(leaveBalance.byType).map(([label, v]) => ({ label, taken: v.taken, entitled: v.entitlement }))
+    : []
+  const recByMonth = recognitionsByMonth(records.recognitions, 6)
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {stats.map((s) => (
+          <div key={s.label} className="card">
+            <p className="text-sm text-ink-muted">{s.label}</p>
+            <p className="gradient-text mt-1 text-2xl font-bold">{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <Section title="Alerts & reminders">
+        {alerts.length === 0 ? (
+          <p className="flex items-center gap-2 py-3 text-sm text-ink-muted">
+            <CheckCircle2 size={16} className="text-emerald-400" /> You&apos;re all caught up.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {alerts.map((a, i) => (
+              <li key={i}>
+                <button
+                  type="button"
+                  onClick={() => onGoTo(a.view)}
+                  className="flex w-full items-center gap-3 rounded-lg border border-surface-border bg-white/[0.03] px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/[0.06]"
+                >
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${dotClass(a.tone)}`} />
+                  <span className="flex-1 text-ink">{a.text}</span>
+                  <ChevronRight size={16} className="text-ink-faint" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Section title="Leave: taken vs entitlement">
+          {leaveChart.length ? (
+            <GroupedBarChart
+              data={leaveChart}
+              seriesA={{ key: 'taken', label: 'Taken', color: '#00C27A' }}
+              seriesB={{ key: 'entitled', label: 'Entitled', color: '#64748B' }}
+            />
+          ) : (
+            <p className="text-sm text-ink-faint">No leave data yet.</p>
+          )}
+        </Section>
+        <Section title="Recognitions (last 6 months)">
+          <ColumnChart data={recByMonth} />
+        </Section>
+      </div>
+    </div>
   )
 }
 
