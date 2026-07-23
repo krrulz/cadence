@@ -63,6 +63,7 @@ export default function PtoCalendar() {
   const [loading, setLoading] = useState(true)
   const [leaves, setLeaves] = useState([])
   const [holidays, setHolidays] = useState([])
+  const [users, setUsers] = useState([])
   const [namesByUid, setNamesByUid] = useState({})
   const [includePending, setIncludePending] = useState(false)
 
@@ -71,23 +72,19 @@ export default function PtoCalendar() {
 
   const loadData = useCallback(async () => {
     setLoading(true)
-    if (isAdmin) {
-      const [allLeaves, users, hols] = await Promise.all([
-        getAllRecords('leaves'),
-        getAllUsers(),
-        getAllRecords('holidays'),
-      ])
-      setLeaves(allLeaves)
-      setNamesByUid(Object.fromEntries(users.map((u) => [u.id, u.name])))
-      setHolidays(hols)
-    } else {
-      const [own, hols] = await Promise.all([getRecordsForEmployee('leaves', user.uid), getAllRecords('holidays')])
-      setLeaves(own)
-      setNamesByUid({ [user.uid]: profile?.name || 'You' })
-      setHolidays(hols)
-    }
+    // Everyone loads the user directory (rules allow it) so team birthdays can
+    // show for all roles; employees still only see their own leave.
+    const [allUsers, hols, leaveRows] = await Promise.all([
+      getAllUsers(),
+      getAllRecords('holidays'),
+      isAdmin ? getAllRecords('leaves') : getRecordsForEmployee('leaves', user.uid),
+    ])
+    setUsers(allUsers)
+    setNamesByUid(Object.fromEntries(allUsers.map((u) => [u.id, u.name])))
+    setHolidays(hols)
+    setLeaves(leaveRows)
     setLoading(false)
-  }, [isAdmin, user.uid, profile?.name])
+  }, [isAdmin, user.uid])
 
   useEffect(() => {
     loadData()
@@ -99,6 +96,15 @@ export default function PtoCalendar() {
   )
   const byDate = useMemo(() => indexLeavesByDate(shown), [shown])
   const holidayByDate = useMemo(() => Object.fromEntries(holidays.map((h) => [h.date, h.name])), [holidays])
+  // 'MM-DD' -> [names] — birthdays recur every year, so they're keyed without one.
+  const birthdaysByMMDD = useMemo(() => {
+    const map = {}
+    for (const u of users) {
+      if (!u.birthday) continue
+      ;(map[u.birthday] ||= []).push(u.name)
+    }
+    return map
+  }, [users])
   const weeks = useMemo(() => monthMatrix(view.year, view.month), [view])
 
   // Mobile agenda: entries touching the viewed month, since the compact phone
@@ -119,6 +125,12 @@ export default function PtoCalendar() {
         .sort((a, b) => a.date.localeCompare(b.date)),
     [holidays, monthStartISO, monthEndISO],
   )
+  const monthBirthdays = useMemo(() => {
+    const mm = String(view.month + 1).padStart(2, '0')
+    return users
+      .filter((u) => u.birthday?.startsWith(`${mm}-`))
+      .sort((a, b) => a.birthday.localeCompare(b.birthday))
+  }, [users, view.month])
 
   function step(delta) {
     setView((v) => {
@@ -194,6 +206,7 @@ export default function PtoCalendar() {
                       inMonth={inMonth}
                       dayLeaves={dayLeaves}
                       holidayName={holidayByDate[iso]}
+                      birthdayNames={birthdaysByMMDD[iso.slice(5)] || []}
                       namesByUid={namesByUid}
                       isAdmin={isAdmin}
                     />
@@ -206,7 +219,7 @@ export default function PtoCalendar() {
                 month's entries beneath the grid. Hidden on sm+. */}
             <div className="mt-4 border-t border-surface-border pt-3 sm:hidden">
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-faint">This month</p>
-              {monthAgenda.length === 0 && monthHolidays.length === 0 ? (
+              {monthAgenda.length === 0 && monthHolidays.length === 0 && monthBirthdays.length === 0 ? (
                 <p className="text-sm text-ink-faint">Nothing scheduled this month.</p>
               ) : (
                 <ul className="space-y-1.5 text-sm">
@@ -215,6 +228,13 @@ export default function PtoCalendar() {
                       <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />
                       <span className="text-ink-muted">{h.date.slice(5)}</span>
                       <span className="truncate text-amber-300">{h.name}</span>
+                    </li>
+                  ))}
+                  {monthBirthdays.map((u) => (
+                    <li key={u.id} className="flex items-center gap-2">
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-fuchsia-400" />
+                      <span className="text-ink-muted">{u.birthday}</span>
+                      <span className="truncate text-fuchsia-300">🎂 {u.name}</span>
                     </li>
                   ))}
                   {monthAgenda.map((l) => (
@@ -308,7 +328,7 @@ function HolidayManager({ holidays, onChanged }) {
   )
 }
 
-function DayCell({ date, iso, inMonth, dayLeaves, holidayName, namesByUid, isAdmin }) {
+function DayCell({ date, iso, inMonth, dayLeaves, holidayName, birthdayNames = [], namesByUid, isAdmin }) {
   const MAX = 3
   const visible = dayLeaves.slice(0, MAX)
   const extra = dayLeaves.length - visible.length
@@ -341,6 +361,7 @@ function DayCell({ date, iso, inMonth, dayLeaves, holidayName, namesByUid, isAdm
       {/* Phone: dots only — names live in the agenda list below the grid. */}
       <div className="flex flex-wrap items-center justify-center gap-0.5 sm:hidden">
         {holidayName && inMonth && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />}
+        {inMonth && birthdayNames.map((n) => <span key={n} className="h-1.5 w-1.5 rounded-full bg-fuchsia-400" />)}
         {dotLeaves.map((leave) => (
           <span
             key={leave.id}
@@ -359,6 +380,16 @@ function DayCell({ date, iso, inMonth, dayLeaves, holidayName, namesByUid, isAdm
             {holidayName}
           </div>
         )}
+        {inMonth &&
+          birthdayNames.map((n) => (
+            <div
+              key={n}
+              className="mb-1 truncate rounded bg-fuchsia-500/15 px-1.5 py-0.5 text-[11px] font-medium text-fuchsia-300"
+              title={`${n}'s birthday`}
+            >
+              🎂 {n}
+            </div>
+          ))}
         <div className="space-y-1">
           {visible.map((leave) => {
             // Admin cares who's off; employee cares which leave type.

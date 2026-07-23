@@ -17,7 +17,16 @@ import GrievanceList from '../components/GrievanceList.jsx'
 import Avatar from '../components/Avatar.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { getUserDoc, getRecordsForEmployee, addRecord, updateRecord, deleteRecord } from '../lib/firestoreHelpers.js'
+import {
+  getUserDoc,
+  getRecordsForEmployee,
+  addRecord,
+  updateRecord,
+  deleteRecord,
+  updateUserProfile,
+} from '../lib/firestoreHelpers.js'
+import { formatBirthday, normalizeBirthday } from '../lib/birthday.js'
+import BirthdayField from '../components/BirthdayField.jsx'
 import { sendAlert } from '../lib/notify.js'
 import GrievanceEditModal from '../components/GrievanceEditModal.jsx'
 import { computeLeaveBalance, sortByDateDesc, latestByDate, isReview } from '../lib/aggregate.js'
@@ -127,6 +136,7 @@ export default function EmployeeDetail() {
         records={records}
         leaveBalance={leaveBalance}
         onDeleted={() => navigate('/')}
+        onChanged={loadData}
       />
 
       <div className="mt-4 flex gap-1 overflow-x-auto border-b border-surface-border">
@@ -325,7 +335,8 @@ export default function EmployeeDetail() {
 
 // --- Profile header ----------------------------------------------------
 
-function ProfileHeader({ employee, records, leaveBalance, onDeleted }) {
+function ProfileHeader({ employee, records, leaveBalance, onDeleted, onChanged }) {
+  const [editingBirthday, setEditingBirthday] = useState(false)
   const reviews = records.performance.filter(isReview)
   const latestReview = reviews.length ? latestByDate(reviews, 'date') : null
   const openGrievances = records.grievances.filter((g) => g.status !== 'Resolved').length
@@ -345,12 +356,24 @@ function ProfileHeader({ employee, records, leaveBalance, onDeleted }) {
             <h1 className="text-xl font-semibold text-ink">{employee.name}</h1>
             <p className="truncate text-sm text-ink-muted">{employee.email}</p>
             <p className="text-sm text-ink-muted">
-              {employee.department} · Joined {employee.dateOfJoining} · Manager {employee.managerName || '—'}
+              {employee.department} · 🎂 {formatBirthday(employee.birthday) || 'Not set'}{' '}
+              <button
+                type="button"
+                onClick={() => setEditingBirthday(true)}
+                className="text-xs text-mint hover:underline"
+              >
+                edit
+              </button>{' '}
+              · Manager {employee.managerName || '—'}
             </p>
           </div>
         </div>
         <AdminEmployeeActions employee={employee} onDeleted={onDeleted} />
       </div>
+
+      {editingBirthday && (
+        <SetBirthdayModal employee={employee} onClose={() => setEditingBirthday(false)} onSaved={onChanged} />
+      )}
 
       <div className="mt-4 grid grid-cols-3 gap-3">
         {chips.map((c) => (
@@ -361,6 +384,40 @@ function ProfileHeader({ employee, records, leaveBalance, onDeleted }) {
         ))}
       </div>
     </div>
+  )
+}
+
+function SetBirthdayModal({ employee, onClose, onSaved }) {
+  const [birthday, setBirthday] = useState(employee.birthday || '')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    const clean = normalizeBirthday(birthday)
+    if (birthday && !clean) return setError('Pick both a day and a month.')
+    setSubmitting(true)
+    try {
+      await updateUserProfile(employee.id, { birthday: clean })
+      onSaved?.()
+      onClose()
+    } catch (err) {
+      setError(err.message || 'Could not save birthday.')
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Modal title={`Birthday — ${employee.name}`} onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <p className="text-sm text-ink-muted">
+          Only the day and month are stored — the year of birth is never collected.
+        </p>
+        <BirthdayField value={birthday} onChange={setBirthday} />
+        {error && <p className="text-sm text-rose-400">{error}</p>}
+        <FormActions submitting={submitting} onCancel={onClose} />
+      </form>
+    </Modal>
   )
 }
 

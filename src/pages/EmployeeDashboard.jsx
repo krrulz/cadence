@@ -27,6 +27,7 @@ import {
 } from '../lib/firestoreHelpers.js'
 import { computeLeaveBalance, sortByDateDesc, latestByDate, isReview } from '../lib/aggregate.js'
 import { recognitionsByMonth } from '../lib/analytics.js'
+import { formatBirthday, birthdayState } from '../lib/birthday.js'
 import { computeLeaveDays, holidaySet } from '../lib/leave.js'
 import { sendAlert, getAdminEmails } from '../lib/notify.js'
 import {
@@ -129,7 +130,7 @@ export default function EmployeeDashboard() {
           <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight text-ink">{profile.name}</h1>
             <p className="text-sm text-ink-muted">
-              {profile.department} · Joined {profile.dateOfJoining} · Manager {profile.managerName || '—'}
+              {profile.department} · 🎂 {formatBirthday(profile.birthday) || '—'} · Manager {profile.managerName || '—'}
             </p>
           </div>
         </div>
@@ -157,7 +158,7 @@ export default function EmployeeDashboard() {
           sidebar (Layout), where the sections sit beneath "My Dashboard". */}
       <div className="mt-6 space-y-6">
           {view === 'overview' && (
-            <OverviewView records={records} leaveBalance={leaveBalance} onGoTo={goTo} />
+            <OverviewView records={records} leaveBalance={leaveBalance} profile={profile} onGoTo={goTo} />
           )}
 
           {view === 'performance' && (
@@ -338,8 +339,10 @@ function dotClass(tone) {
 
 // The default landing: personal analytics + an actionable alerts/reminders feed.
 // Each alert links to the relevant section via onGoTo.
-function OverviewView({ records, leaveBalance, onGoTo }) {
+function OverviewView({ records, leaveBalance, profile, onGoTo }) {
   const today = todayISO()
+  const birthdayToday = birthdayState(profile?.birthday) === 'today'
+  const firstName = (profile?.name || '').trim().split(/\s+/)[0] || 'there'
 
   const alerts = []
   const pending = records.leaves.filter((l) => l.status === 'Pending')
@@ -389,6 +392,18 @@ function OverviewView({ records, leaveBalance, onGoTo }) {
 
   return (
     <div className="space-y-6">
+      {birthdayToday && (
+        <div
+          className="animate-fade-in-up rounded-2xl border border-fuchsia-500/30 p-5"
+          style={{ background: 'linear-gradient(120deg, rgba(196,107,255,.16), rgba(0,226,142,.14))' }}
+        >
+          <p className="text-lg font-bold text-ink">🎉 Happy Birthday, {firstName}! 🎂</p>
+          <p className="mt-1 text-sm text-ink-muted">
+            Wishing you a fantastic day and a wonderful year ahead — from the whole team at Cadence.
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className="card">

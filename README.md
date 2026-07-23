@@ -183,7 +183,7 @@ Cadence can email a short notification when something relevant happens — a lea
 
 ## Data model (Firestore)
 
-- `users/{uid}` — `name, email, role ('admin'|'employee'), department, managerName, dateOfJoining, status, leaveEntitlements, leaveOpeningTaken, leaveCarryOver`
+- `users/{uid}` — `name, email, role ('admin'|'employee'), department, managerName, dateOfJoining, birthday, status, leaveEntitlements, leaveOpeningTaken, leaveCarryOver`. `birthday` is stored as `'MM-DD'` only — the year of birth is never collected. Shown as "23 Jul" in profile headers (replacing the joined date), as 🎂 pills on the calendar, as a reminder tag on the admin roster from the day before through the birthday, and as a wishes banner on the employee's Overview on the day.
 - `performance/{id}` — `employeeId, date, entryType ('Review'|'Achievement')`, plus:
   - `Review` (admin-authored) — `reviewPeriod, rating (1-5), reviewer, comments, goals`
   - `Achievement` (self-logged by the employee) — `title, description`

@@ -4,7 +4,9 @@ import { getSecondaryAuth } from '../firebase.js'
 import { createUserProfile } from '../lib/firestoreHelpers.js'
 import { LEAVE_TYPES, DEFAULT_LEAVE_ENTITLEMENTS, DEFAULT_LEAVE_OPENING_TAKEN } from '../lib/constants.js'
 import { parseCsv, BULK_UPLOAD_TEMPLATE, downloadTextFile } from '../lib/csv.js'
+import { normalizeBirthday } from '../lib/birthday.js'
 import Modal from './Modal.jsx'
+import BirthdayField from './BirthdayField.jsx'
 
 const emptyForm = {
   name: '',
@@ -12,7 +14,7 @@ const emptyForm = {
   password: '',
   department: '',
   managerName: '',
-  dateOfJoining: '',
+  birthday: '', // 'MM-DD', no year
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -27,6 +29,7 @@ async function createEmployeeAccount({
   department,
   managerName,
   dateOfJoining,
+  birthday,
   leaveEntitlements,
   leaveOpeningTaken,
 }) {
@@ -42,7 +45,8 @@ async function createEmployeeAccount({
       role: 'employee',
       department,
       managerName: managerName || '',
-      dateOfJoining,
+      dateOfJoining: dateOfJoining || '',
+      birthday: normalizeBirthday(birthday),
       status: 'Active',
       leaveEntitlements,
       leaveOpeningTaken: leaveOpeningTaken || { ...DEFAULT_LEAVE_OPENING_TAKEN },
@@ -156,15 +160,7 @@ function SingleAddForm({ onClose, onCreated }) {
         <Field label="Manager Name">
           <input value={form.managerName} onChange={(e) => update('managerName', e.target.value)} className="input" />
         </Field>
-        <Field label="Date of Joining" required>
-          <input
-            type="date"
-            required
-            value={form.dateOfJoining}
-            onChange={(e) => update('dateOfJoining', e.target.value)}
-            className="input"
-          />
-        </Field>
+        <BirthdayField value={form.birthday} onChange={(v) => update('birthday', v)} />
       </div>
 
       <div>

@@ -12,6 +12,7 @@ import DataTable from '../components/DataTable.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { getAllUsers, getAllRecords } from '../lib/firestoreHelpers.js'
 import { buildEmployeeSummary, sortByDateDesc } from '../lib/aggregate.js'
+import { birthdayState } from '../lib/birthday.js'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -201,6 +202,18 @@ export default function AdminDashboard() {
                   <td className="py-2 pr-4 text-ink-muted">{s.leaveBalance.total}</td>
                   <td className="py-2 pr-4">
                     <div className="flex flex-wrap gap-1">
+                      {(() => {
+                        // Birthday reminder: visible from the day before until
+                        // the end of the birthday itself.
+                        const bday = birthdayState(s.user.birthday)
+                        return (
+                          bday && (
+                            <span className="inline-flex items-center whitespace-nowrap rounded-full bg-fuchsia-500/15 px-2.5 py-0.5 text-xs font-medium text-fuchsia-300 ring-1 ring-inset ring-fuchsia-500/30">
+                              🎂 {bday === 'today' ? 'Birthday today' : 'Birthday tomorrow'}
+                            </span>
+                          )
+                        )
+                      })()}
                       {s.flags.map((flag) => (
                         <StatusBadge key={flag} label={flag} />
                       ))}
