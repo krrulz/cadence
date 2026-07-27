@@ -13,3 +13,6 @@ serviceAccountKey*.json
 # Any env backup/copy variants — never commit credentials
 .env*
 !.env.example
+
+# Cleanup script backups (contain real HR data)
+scripts/backups/

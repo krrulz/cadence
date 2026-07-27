@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "create-user": "node scripts/createUser.js"
+    "create-user": "node scripts/createUser.js",
+    "cleanup-test-data": "node scripts/cleanupTestData.js"
   },
   "dependencies": {
     "firebase": "^10.14.1",
