@@ -16,6 +16,7 @@ import {
   Users,
   AlertTriangle,
   Gauge,
+  Sliders,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import ChangePasswordModal from './ChangePasswordModal.jsx'
@@ -36,6 +37,7 @@ const NAV = [
 const EMPLOYEE_SECTIONS = [
   { to: '/me/performance', label: 'Performance', icon: Trophy },
   { to: '/me/goals', label: 'Goals & OKRs', icon: Target },
+  { to: '/me/skills', label: 'Skill Matrix', icon: Sliders },
   { to: '/me/recognitions', label: 'Recognitions', icon: Award },
   { to: '/me/feedback', label: 'Feedback', icon: MessageSquare },
   { to: '/me/one-on-ones', label: '1:1 Meetings', icon: Users },

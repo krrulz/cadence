@@ -52,6 +52,17 @@ export const GRIEVANCE_SLA_DAYS = { Low: 30, Medium: 14, High: 7 }
 
 export const GOAL_STATUSES = ['Not Started', 'In Progress', 'At Risk', 'Completed']
 
+export const SKILL_CATEGORIES = ['Technical', 'Functional', 'Behavioural', 'Domain']
+
+// 1–5 expertise scale used by the skill matrix.
+export const SKILL_LEVELS = [
+  { n: 1, label: 'Novice' },
+  { n: 2, label: 'Beginner' },
+  { n: 3, label: 'Intermediate' },
+  { n: 4, label: 'Advanced' },
+  { n: 5, label: 'Expert' },
+]
+
 export const LEAVE_STATUSES = ['Pending', 'Approved', 'Rejected']
 
 export const FEEDBACK_OVERDUE_DAYS = 90

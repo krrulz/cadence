@@ -10,6 +10,7 @@ import DataTable from '../components/DataTable.jsx'
 import PerformanceTimeline from '../components/PerformanceTimeline.jsx'
 import OneOnOnes from '../components/OneOnOnes.jsx'
 import Goals from '../components/Goals.jsx'
+import SkillMatrix from '../components/SkillMatrix.jsx'
 import GrievanceList from '../components/GrievanceList.jsx'
 import GrievanceEditModal from '../components/GrievanceEditModal.jsx'
 import Avatar from '../components/Avatar.jsx'
@@ -47,6 +48,7 @@ function todayISO() {
 const SLUG_TO_VIEW = {
   performance: 'performance',
   goals: 'goals',
+  skills: 'skills',
   recognitions: 'recognitions',
   feedback: 'feedback',
   'one-on-ones': 'oneOnOnes',
@@ -175,6 +177,10 @@ export default function EmployeeDashboard() {
 
           {view === 'goals' && (
             <Goals employeeId={user.uid} viewer={{ uid: user.uid, name: profile.name, role: 'employee' }} />
+          )}
+
+          {view === 'skills' && (
+            <SkillMatrix employeeId={user.uid} viewer={{ uid: user.uid, name: profile.name, role: 'employee' }} />
           )}
 
           {view === 'recognitions' && (

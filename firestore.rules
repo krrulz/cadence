@@ -152,6 +152,19 @@ service cloud.firestore {
       allow delete: if isAdmin() || isOwner(resource.data.employeeId);
     }
 
+    // --- skills (tech / functional / skill matrix) ------------------------
+    // Collaborative like goals: the employee and the admin may both add, rate
+    // and remove an employee's skills. The employee can't reassign a skill.
+    match /skills/{id} {
+      allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
+      allow create: if isAdmin() || isOwner(request.resource.data.employeeId);
+      allow update: if isAdmin() || (
+        isOwner(resource.data.employeeId) &&
+        request.resource.data.employeeId == resource.data.employeeId
+      );
+      allow delete: if isAdmin() || isOwner(resource.data.employeeId);
+    }
+
     // --- bookmarks --------------------------------------------------------
     // Admin-curated useful links, visible to the whole team. Any signed-in user
     // may read; only admin may add, edit or remove.

@@ -13,6 +13,7 @@ import ComposeEmailModal from '../components/ComposeEmailModal.jsx'
 import EditLeaveModal from '../components/EditLeaveModal.jsx'
 import OneOnOnes from '../components/OneOnOnes.jsx'
 import Goals from '../components/Goals.jsx'
+import SkillMatrix from '../components/SkillMatrix.jsx'
 import GrievanceList from '../components/GrievanceList.jsx'
 import Avatar from '../components/Avatar.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
@@ -40,8 +41,8 @@ import {
   leaveSummaryLine,
 } from '../lib/summaryLines.js'
 
-const TABS = ['Performance', 'Goals', 'Grievances', 'Recognitions', 'Feedback', 'Leave', '1:1s']
-const TAB_LABELS = { Performance: 'Performance & Achievements', '1:1s': '1:1 Meetings' }
+const TABS = ['Performance', 'Goals', 'Skills', 'Grievances', 'Recognitions', 'Feedback', 'Leave', '1:1s']
+const TAB_LABELS = { Performance: 'Performance & Achievements', Skills: 'Skill Matrix', '1:1s': '1:1 Meetings' }
 
 export default function EmployeeDetail() {
   const { uid } = useParams()
@@ -229,6 +230,9 @@ export default function EmployeeDetail() {
         )}
         {tab === 'Goals' && (
           <Goals employeeId={uid} viewer={{ uid: adminProfile?.id, name: adminProfile?.name, role: 'admin' }} />
+        )}
+        {tab === 'Skills' && (
+          <SkillMatrix employeeId={uid} viewer={{ uid: adminProfile?.id, name: adminProfile?.name, role: 'admin' }} />
         )}
         {tab === '1:1s' && (
           <OneOnOnes
