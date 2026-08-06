@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout.jsx'
 import StatCard from '../components/StatCard.jsx'
-import StatusBadge from '../components/StatusBadge.jsx'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import AddEmployeeModal from '../components/AddEmployeeModal.jsx'
 import ReportModal from '../components/ReportModal.jsx'
@@ -17,13 +16,15 @@ import { birthdayState } from '../lib/birthday.js'
 import { isManagedBy, hasNoManager } from '../lib/manager.js'
 import { computeResourceRisk } from '../lib/resourceRisk.js'
 
-// Happiness/risk tint on the roster cards.
-const CARD_TINT = {
-  red: 'border-rose-500/40 bg-rose-500/[0.08] hover:bg-rose-500/[0.13]',
-  amber: 'border-amber-500/40 bg-amber-500/[0.08] hover:bg-amber-500/[0.13]',
-  green: 'border-emerald-500/30 bg-emerald-500/[0.05] hover:bg-emerald-500/[0.1]',
-}
+// Happiness/risk conveyed by a presence dot + a faint tile tint (subtle for
+// at-risk/watch, none for healthy — keeps the board calm).
+const TILE_TINT = { red: 'bg-rose-500/[0.06]', amber: 'bg-amber-500/[0.05]', green: '' }
 const DOT = { red: 'bg-rose-400', amber: 'bg-amber-400', green: 'bg-emerald-400' }
+const DOT_GLOW = {
+  red: 'shadow-[0_0_0_3px_rgba(251,113,133,0.18)]',
+  amber: 'shadow-[0_0_0_3px_rgba(251,191,36,0.18)]',
+  green: 'shadow-[0_0_0_3px_rgba(52,211,153,0.16)]',
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -288,9 +289,9 @@ export default function AdminDashboard() {
               : 'No employees match these filters.'}
           </p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
             {filtered.map((s) => (
-              <RosterCard
+              <PersonTile
                 key={s.user.id}
                 summary={s}
                 risk={riskByEmp[s.user.id]}
@@ -386,64 +387,49 @@ function BulkReassignModal({ count, admins, onClose, onReassign }) {
   )
 }
 
-// Compact person card for the roster grid — tinted by happiness/risk. Clicking
-// the body opens the employee; the checkbox drives bulk selection.
-function RosterCard({ summary: s, risk, selected, onToggle, onOpen }) {
+// Compact, premium "team board" tile: avatar with a status presence-dot, name
+// and department. Details on hover (tooltip) / click. Checkbox reveals on hover.
+function PersonTile({ summary: s, risk, selected, onToggle, onOpen }) {
   const bday = birthdayState(s.user.birthday)
   const flags = s.flags.filter((f) => f !== 'OK')
+  const rating = s.latestPerformance ? `${s.latestPerformance.rating}/5` : '—'
+  const tip = `${s.user.name} · ${s.user.department || '—'}\nRating ${rating} · ${s.openGrievanceCount} open grievance(s) · ${s.leaveBalance.total} leave${flags.length ? `\n${flags.join(', ')}` : ''}`
+
   return (
     <div
-      className={`group relative cursor-pointer rounded-xl border p-3 transition-colors ${CARD_TINT[risk] || 'border-surface-border hover:bg-white/[0.03]'} ${
-        selected ? 'ring-2 ring-mint/60' : ''
-      }`}
       onClick={onOpen}
+      title={tip}
+      className={`group relative flex cursor-pointer items-center gap-2.5 rounded-xl border p-2.5 transition-all duration-150 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.05] hover:shadow-lg hover:shadow-black/30 ${
+        selected ? 'border-mint/60 bg-mint/[0.06]' : `border-white/[0.07] bg-white/[0.025] ${TILE_TINT[risk] || ''}`
+      }`}
     >
-      <div className="flex items-start gap-2.5">
-        <input
-          type="checkbox"
-          className="mt-1 h-4 w-4 shrink-0 accent-mint"
-          checked={selected}
-          onChange={onToggle}
-          onClick={(e) => e.stopPropagation()}
-          aria-label={`Select ${s.user.name}`}
-        />
+      {/* selection checkbox — hidden until hover or when selected */}
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggle}
+        onClick={(e) => e.stopPropagation()}
+        aria-label={`Select ${s.user.name}`}
+        className={`absolute left-1.5 top-1.5 h-3.5 w-3.5 accent-mint transition-opacity ${
+          selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        }`}
+      />
+
+      <div className="relative shrink-0">
         <Avatar name={s.user.name} colorKey={s.user.id} size="md" />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate font-semibold text-ink group-hover:underline">{s.user.name}</span>
-            <span className={`h-2 w-2 shrink-0 rounded-full ${DOT[risk] || 'bg-white/20'}`} />
-          </div>
-          <p className="truncate text-xs text-ink-muted">{s.user.department || '—'}</p>
-        </div>
+        <span
+          className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface ${DOT[risk] || 'bg-white/25'} ${DOT_GLOW[risk] || ''}`}
+        />
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-        <Metric label="Rating" value={s.latestPerformance ? `${s.latestPerformance.rating}/5` : '—'} />
-        <Metric label="Grievances" value={s.openGrievanceCount} warn={s.openGrievanceCount > 0} />
-        <Metric label="Leave" value={s.leaveBalance.total} />
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-1 truncate text-sm font-semibold text-ink">
+          <span className="truncate">{s.user.name}</span>
+          {bday && <span title={`Birthday ${bday}`}>🎂</span>}
+          {flags.length > 0 && <span className="text-amber-300" title={flags.join(', ')}>⚠</span>}
+        </p>
+        <p className="truncate text-xs text-ink-faint">{s.user.department || '—'}</p>
       </div>
-
-      {(bday || flags.length > 0) && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {bday && (
-            <span className="inline-flex items-center whitespace-nowrap rounded-full bg-fuchsia-500/15 px-2 py-0.5 text-[10px] font-medium text-fuchsia-300 ring-1 ring-inset ring-fuchsia-500/30">
-              🎂 {bday === 'today' ? 'Today' : 'Tomorrow'}
-            </span>
-          )}
-          {flags.map((flag) => (
-            <StatusBadge key={flag} label={flag} />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function Metric({ label, value, warn }) {
-  return (
-    <div className="rounded-lg bg-black/10 py-1.5">
-      <p className={`text-sm font-semibold ${warn ? 'text-rose-300' : 'text-ink'}`}>{value}</p>
-      <p className="text-[10px] uppercase tracking-wide text-ink-faint">{label}</p>
     </div>
   )
 }

@@ -149,14 +149,9 @@ export default function ResourceAnalysis() {
           {filtered.length === 0 ? (
             <p className="mt-6 py-8 text-center text-ink-faint">No one matches these filters.</p>
           ) : (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
               {filtered.map((row) => (
-                <ResourceCard
-                  key={row.emp.id}
-                  row={row}
-                  onOpen={() => navigate(`/employee/${row.emp.id}`)}
-                  onEdit={() => setEditing(row)}
-                />
+                <ResourceTile key={row.emp.id} row={row} onEdit={() => setEditing(row)} />
               ))}
             </div>
           )}
@@ -166,6 +161,7 @@ export default function ResourceAnalysis() {
       {editing && (
         <NoteModal
           row={editing}
+          onOpenProfile={() => navigate(`/employee/${editing.emp.id}`)}
           onClose={() => setEditing(null)}
           onSave={async (note, sentiment) => {
             await saveAnalysis(editing.emp.id, note, sentiment)
@@ -177,60 +173,44 @@ export default function ResourceAnalysis() {
   )
 }
 
-function ResourceCard({ row, onOpen, onEdit }) {
+// Compact tile matching the My Team board. Neutral (no risk colour here); the
+// corner badge shows note sentiment, and the whole tile opens the note editor.
+// The note snippet + key signals show on hover.
+function ResourceTile({ row, onEdit }) {
   const { emp, bundle, analysis } = row
   const reviews = bundle.performance.filter(isReview)
-  const latestRating = reviews.length ? latestByDate(reviews, 'date').rating : '—'
+  const rating = reviews.length ? `${latestByDate(reviews, 'date').rating}/5` : '—'
   const openGrievances = bundle.grievances.filter((g) => g.status !== 'Resolved').length
+  const tip = `${emp.name} · ${emp.department || '—'}\nRating ${rating} · ${openGrievances} open grievance(s)${
+    analysis?.note ? `\n\n“${analysis.note}”` : '\n\nNo note yet.'
+  }`
 
   return (
-    <div className="flex flex-col rounded-xl border border-surface-border p-3">
-      <div className="flex items-start gap-2.5">
+    <div
+      onClick={onEdit}
+      title={tip}
+      className="group relative flex cursor-pointer items-center gap-2.5 rounded-xl border border-white/[0.07] bg-white/[0.025] p-2.5 transition-all duration-150 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.05] hover:shadow-lg hover:shadow-black/30"
+    >
+      <div className="relative shrink-0">
         <Avatar name={emp.name} colorKey={emp.id} size="md" />
-        <div className="min-w-0 flex-1">
-          <button type="button" onClick={onOpen} className="truncate font-semibold text-ink hover:underline">
-            {emp.name}
-          </button>
-          <p className="truncate text-xs text-ink-muted">{emp.department || '—'}</p>
-        </div>
-        <span className="flex gap-3 text-center text-xs text-ink-muted">
-          <span>
-            <span className="block text-sm font-semibold text-ink">{latestRating === '—' ? '—' : `${latestRating}/5`}</span>
-            <span className="text-[10px] uppercase text-ink-faint">Rating</span>
-          </span>
-          <span>
-            <span className={`block text-sm font-semibold ${openGrievances > 0 ? 'text-rose-300' : 'text-ink'}`}>
-              {openGrievances}
-            </span>
-            <span className="text-[10px] uppercase text-ink-faint">Griev.</span>
-          </span>
+        <span
+          className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full border-2 border-surface bg-surface-2 text-[10px]"
+          title={analysis?.note ? `Note: ${analysis.sentiment || 'neutral'}` : 'No note'}
+        >
+          {analysis?.note ? SENTIMENT_EMOJI[analysis.sentiment] || '📝' : '＋'}
         </span>
       </div>
-
-      <div className="mt-2 flex-1 rounded-lg bg-black/10 p-2 text-sm text-ink-muted">
-        {analysis?.note ? (
-          <p className="line-clamp-3">
-            {SENTIMENT_EMOJI[analysis.sentiment] || '📝'} “{analysis.note}”
-          </p>
-        ) : (
-          <p className="text-ink-faint">No note yet.</p>
-        )}
-      </div>
-
-      <div className="mt-2 flex items-center justify-between">
-        <span className="truncate text-[11px] text-ink-faint">
-          {row.risk.reasons.slice(0, 1)[0] || ''}
-          {analysis?.updatedAt ? ` · ${analysis.updatedAt.slice(0, 10)}` : ''}
-        </span>
-        <button type="button" onClick={onEdit} className="btn-secondary text-xs">
-          {analysis?.note ? 'Edit note' : 'Add note'}
-        </button>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-ink">{emp.name}</p>
+        <p className="truncate text-xs text-ink-faint">
+          {analysis?.note ? analysis.note : emp.department || '—'}
+        </p>
       </div>
     </div>
   )
 }
 
-function NoteModal({ row, onClose, onSave }) {
+function NoteModal({ row, onClose, onSave, onOpenProfile }) {
   const { emp, analysis, risk } = row
   const [note, setNote] = useState(analysis?.note || '')
   const [sentiment, setSentiment] = useState(analysis?.sentiment || 'neutral')
@@ -245,6 +225,9 @@ function NoteModal({ row, onClose, onSave }) {
   return (
     <Modal title={`Notes — ${emp.name}`} onClose={onClose}>
       <div className="space-y-4">
+        <button type="button" onClick={onOpenProfile} className="text-xs text-mint hover:underline">
+          Open full profile →
+        </button>
         {risk.reasons.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {risk.reasons.map((r) => (
