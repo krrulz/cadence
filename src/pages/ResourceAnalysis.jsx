@@ -9,14 +9,9 @@ import { isReview, latestByDate, sortByDateDesc } from '../lib/aggregate.js'
 import { isManagedBy } from '../lib/manager.js'
 import { computeResourceRisk } from '../lib/resourceRisk.js'
 
-const LEVEL_ROW = {
-  red: 'border-rose-500 bg-rose-500/10',
-  amber: 'border-amber-500 bg-amber-500/10',
-  green: 'border-emerald-500 bg-emerald-500/[0.07]',
-}
-const LEVEL_DOT = { red: 'bg-rose-400', amber: 'bg-amber-400', green: 'bg-emerald-400' }
-const LEVEL_LABEL = { red: 'At risk', amber: 'Watch', green: 'Healthy' }
-
+// Note: the happiness/risk COLOUR is shown on the My Team dashboard, not here.
+// This tab is the notes workspace; rows stay neutral. Risk is still computed to
+// order at-risk people first and to surface textual "why" reasons.
 const SENTIMENTS = [
   { key: 'positive', label: '🙂 Positive' },
   { key: 'neutral', label: '😐 Neutral' },
@@ -92,26 +87,14 @@ export default function ResourceAnalysis() {
     )
   }
 
-  const counts = rows.reduce((acc, r) => ((acc[r.risk.level] = (acc[r.risk.level] || 0) + 1), acc), {})
-
   return (
     <Layout>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink">Resource Analysis</h1>
-          <p className="text-sm text-ink-muted">
-            Your private read on each reportee — auto colour-coded from grievances, performance, recognitions, 1:1s and
-            your notes. Employees never see this.
-          </p>
-        </div>
-        <div className="flex gap-3 text-sm">
-          {['red', 'amber', 'green'].map((lvl) => (
-            <span key={lvl} className="inline-flex items-center gap-1.5 text-ink-muted">
-              <span className={`h-2.5 w-2.5 rounded-full ${LEVEL_DOT[lvl]}`} />
-              {LEVEL_LABEL[lvl]} · {counts[lvl] || 0}
-            </span>
-          ))}
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-ink">Resource Analysis</h1>
+        <p className="text-sm text-ink-muted">
+          Your private notes on each reportee. These feed the happiness/risk colour shown on your{' '}
+          <span className="text-ink">My Team</span> dashboard. Employees never see this.
+        </p>
       </div>
 
       {rows.length === 0 ? (
@@ -155,16 +138,13 @@ function ResourceRow({ row, onOpen, onSave }) {
   }
 
   return (
-    <div className={`overflow-hidden rounded-xl border-l-4 ${LEVEL_ROW[risk.level]}`}>
+    <div className="overflow-hidden rounded-xl border border-surface-border">
       <div className="flex flex-wrap items-center gap-3 p-3">
         <Avatar name={emp.name} colorKey={emp.id} size="md" />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={onOpen} className="truncate font-semibold text-ink hover:underline">
-              {emp.name}
-            </button>
-            <span className={`h-2 w-2 shrink-0 rounded-full ${LEVEL_DOT[risk.level]}`} title={LEVEL_LABEL[risk.level]} />
-          </div>
+          <button type="button" onClick={onOpen} className="truncate font-semibold text-ink hover:underline">
+            {emp.name}
+          </button>
           <p className="truncate text-xs text-ink-muted">
             {emp.department} · {risk.reasons.slice(0, 2).join(' · ')}
           </p>

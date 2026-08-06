@@ -14,6 +14,14 @@ import { getAllUsers, getAllRecords, updateUserProfile } from '../lib/firestoreH
 import { buildEmployeeSummary, sortByDateDesc } from '../lib/aggregate.js'
 import { birthdayState } from '../lib/birthday.js'
 import { isManagedBy, hasNoManager } from '../lib/manager.js'
+import { computeResourceRisk } from '../lib/resourceRisk.js'
+
+// Happiness/risk row tint on the roster.
+const ROW_TINT = {
+  red: 'bg-rose-500/10 hover:bg-rose-500/[0.16]',
+  amber: 'bg-amber-500/10 hover:bg-amber-500/[0.16]',
+  green: 'bg-emerald-500/[0.07] hover:bg-emerald-500/[0.13]',
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -27,9 +35,12 @@ export default function AdminDashboard() {
   const [showReport, setShowReport] = useState(false)
   const [selectedIds, setSelectedIds] = useState(() => new Set())
 
+  const [analysis, setAnalysis] = useState([])
+  const [oneOnOnes, setOneOnOnes] = useState([])
+
   const loadData = useCallback(async () => {
     setLoading(true)
-    const [users, performance, grievances, recognitions, feedback, leaves, goals] = await Promise.all([
+    const [users, performance, grievances, recognitions, feedback, leaves, goals, ooo, ra] = await Promise.all([
       getAllUsers(),
       getAllRecords('performance'),
       getAllRecords('grievances'),
@@ -37,6 +48,8 @@ export default function AdminDashboard() {
       getAllRecords('feedback'),
       getAllRecords('leaves'),
       getAllRecords('goals'),
+      getAllRecords('oneOnOnes'),
+      getAllRecords('resourceAnalysis'),
     ])
 
     const employees = users.filter((u) => u.role === 'employee')
@@ -45,6 +58,8 @@ export default function AdminDashboard() {
     )
     setSummaries(built)
     setRecords({ performance, grievances, recognitions, feedback, leaves, goals })
+    setOneOnOnes(ooo)
+    setAnalysis(ra)
     setLoading(false)
   }, [])
 
@@ -59,6 +74,29 @@ export default function AdminDashboard() {
     [summaries, admin.uid, admin.name],
   )
   const unassigned = useMemo(() => summaries.filter((s) => hasNoManager(s.user)), [summaries])
+
+  // Happiness / risk colour per employee (green/amber/red), driven by the same
+  // engine as the notes: grievances, performance, recognitions, 1:1/feedback
+  // recency and the manager's private note sentiment.
+  const riskByEmp = useMemo(() => {
+    const analysisById = Object.fromEntries(analysis.map((a) => [a.id, a]))
+    const byEmp = (arr, id) => (arr || []).filter((r) => r.employeeId === id)
+    const map = {}
+    for (const s of summaries) {
+      const id = s.user.id
+      map[id] = computeResourceRisk(
+        {
+          performance: byEmp(records.performance, id),
+          grievances: byEmp(records.grievances, id),
+          recognitions: byEmp(records.recognitions, id),
+          feedback: byEmp(records.feedback, id),
+          oneOnOnes: byEmp(oneOnOnes, id),
+        },
+        analysisById[id],
+      ).level
+    }
+    return map
+  }, [summaries, records, oneOnOnes, analysis])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -147,12 +185,25 @@ export default function AdminDashboard() {
 
       <div className="mt-6 card">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-semibold text-ink">
-            Roster
-            {selectedIds.size > 0 && (
-              <span className="ml-2 text-sm font-normal text-ink-faint">{selectedIds.size} selected</span>
-            )}
-          </h2>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <h2 className="font-semibold text-ink">
+              Roster
+              {selectedIds.size > 0 && (
+                <span className="ml-2 text-sm font-normal text-ink-faint">{selectedIds.size} selected</span>
+              )}
+            </h2>
+            <span className="flex items-center gap-3 text-xs text-ink-faint">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" /> Healthy
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Watch
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-rose-400" /> At risk
+              </span>
+            </span>
+          </div>
           <input
             type="text"
             placeholder="Search by name or department…"
@@ -190,7 +241,7 @@ export default function AdminDashboard() {
                 <tr
                   key={s.user.id}
                   onClick={() => navigate(`/employee/${s.user.id}`)}
-                  className="cursor-pointer border-b border-white/5 hover:bg-white/[0.03]"
+                  className={`cursor-pointer border-b border-white/5 transition-colors ${ROW_TINT[riskByEmp[s.user.id]] || ''}`}
                 >
                   <td className="py-2 pr-2" onClick={(e) => e.stopPropagation()}>
                     <input
