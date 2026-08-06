@@ -3,27 +3,33 @@ import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout.jsx'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import Avatar from '../components/Avatar.jsx'
+import Modal from '../components/Modal.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { getAllUsers, getAllRecords, setRecordById } from '../lib/firestoreHelpers.js'
-import { isReview, latestByDate, sortByDateDesc } from '../lib/aggregate.js'
+import { isReview, latestByDate } from '../lib/aggregate.js'
 import { isManagedBy } from '../lib/manager.js'
 import { computeResourceRisk } from '../lib/resourceRisk.js'
 
-// Note: the happiness/risk COLOUR is shown on the My Team dashboard, not here.
-// This tab is the notes workspace; rows stay neutral. Risk is still computed to
-// order at-risk people first and to surface textual "why" reasons.
+// The happiness/risk COLOUR lives on the My Team dashboard; this tab is the
+// notes workspace. Risk is still computed to sort at-risk people first, filter,
+// and show textual "why" reasons.
 const SENTIMENTS = [
   { key: 'positive', label: '🙂 Positive' },
   { key: 'neutral', label: '😐 Neutral' },
   { key: 'concern', label: '⚠️ Concern' },
 ]
 const SENTIMENT_EMOJI = { positive: '🙂', neutral: '😐', concern: '⚠️' }
+const RISK_ORDER = { red: 0, amber: 1, green: 2 }
 
 export default function ResourceAnalysis() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
+  const [search, setSearch] = useState('')
+  const [deptFilter, setDeptFilter] = useState('')
+  const [riskFilter, setRiskFilter] = useState('')
+  const [editing, setEditing] = useState(null) // the row being edited
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -61,14 +67,25 @@ export default function ResourceAnalysis() {
           oneOnOnes: byEmp('oneOnOnes', emp.id),
         }
         const analysis = analysisById[emp.id]
-        const risk = computeResourceRisk(bundle, analysis)
-        return { emp, bundle, analysis, risk }
+        return { emp, bundle, analysis, risk: computeResourceRisk(bundle, analysis) }
       })
-      .sort((a, b) => {
-        const order = { red: 0, amber: 1, green: 2 }
-        return order[a.risk.level] - order[b.risk.level] || a.emp.name.localeCompare(b.emp.name)
-      })
+      .sort((a, b) => RISK_ORDER[a.risk.level] - RISK_ORDER[b.risk.level] || a.emp.name.localeCompare(b.emp.name))
   }, [data, user.uid, profile?.name])
+
+  const departments = useMemo(
+    () => [...new Set(rows.map((r) => r.emp.department).filter(Boolean))].sort(),
+    [rows],
+  )
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return rows.filter((r) => {
+      if (q && !r.emp.name.toLowerCase().includes(q) && !(r.emp.department || '').toLowerCase().includes(q)) return false
+      if (deptFilter && r.emp.department !== deptFilter) return false
+      if (riskFilter && r.risk.level !== riskFilter) return false
+      return true
+    })
+  }, [rows, search, deptFilter, riskFilter])
 
   async function saveAnalysis(empId, note, sentiment) {
     await setRecordById('resourceAnalysis', empId, {
@@ -103,130 +120,181 @@ export default function ResourceAnalysis() {
           No employees are assigned to you yet. Assign reportees from the Dashboard, then they&apos;ll appear here.
         </div>
       ) : (
-        <div className="mt-6 space-y-3">
-          {rows.map((row) => (
-            <ResourceRow
-              key={row.emp.id}
-              row={row}
-              onOpen={() => navigate(`/employee/${row.emp.id}`)}
-              onSave={saveAnalysis}
+        <>
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              placeholder="Search name or department…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input w-full sm:w-auto sm:max-w-xs"
             />
-          ))}
-        </div>
+            <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} className="input w-auto py-2">
+              <option value="">All departments</option>
+              {departments.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+            <select value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)} className="input w-auto py-2">
+              <option value="">All statuses</option>
+              <option value="red">At risk</option>
+              <option value="amber">Watch</option>
+              <option value="green">Healthy</option>
+            </select>
+            <span className="ml-auto text-sm text-ink-faint">{filtered.length} shown</span>
+          </div>
+
+          {filtered.length === 0 ? (
+            <p className="mt-6 py-8 text-center text-ink-faint">No one matches these filters.</p>
+          ) : (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {filtered.map((row) => (
+                <ResourceCard
+                  key={row.emp.id}
+                  row={row}
+                  onOpen={() => navigate(`/employee/${row.emp.id}`)}
+                  onEdit={() => setEditing(row)}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {editing && (
+        <NoteModal
+          row={editing}
+          onClose={() => setEditing(null)}
+          onSave={async (note, sentiment) => {
+            await saveAnalysis(editing.emp.id, note, sentiment)
+            setEditing(null)
+          }}
+        />
       )}
     </Layout>
   )
 }
 
-function ResourceRow({ row, onOpen, onSave }) {
-  const { emp, bundle, analysis, risk } = row
-  const [expanded, setExpanded] = useState(false)
-  const [note, setNote] = useState(analysis?.note || '')
-  const [sentiment, setSentiment] = useState(analysis?.sentiment || 'neutral')
-  const [saving, setSaving] = useState(false)
-
+function ResourceCard({ row, onOpen, onEdit }) {
+  const { emp, bundle, analysis } = row
   const reviews = bundle.performance.filter(isReview)
   const latestRating = reviews.length ? latestByDate(reviews, 'date').rating : '—'
   const openGrievances = bundle.grievances.filter((g) => g.status !== 'Resolved').length
-  const last1on1 = bundle.oneOnOnes.length ? sortByDateDesc(bundle.oneOnOnes, 'date')[0].date : '—'
-
-  const dirty = note !== (analysis?.note || '') || sentiment !== (analysis?.sentiment || 'neutral')
-
-  async function handleSave() {
-    setSaving(true)
-    await onSave(emp.id, note.trim(), sentiment)
-    setSaving(false)
-  }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-surface-border">
-      <div className="flex flex-wrap items-center gap-3 p-3">
+    <div className="flex flex-col rounded-xl border border-surface-border p-3">
+      <div className="flex items-start gap-2.5">
         <Avatar name={emp.name} colorKey={emp.id} size="md" />
         <div className="min-w-0 flex-1">
           <button type="button" onClick={onOpen} className="truncate font-semibold text-ink hover:underline">
             {emp.name}
           </button>
-          <p className="truncate text-xs text-ink-muted">
-            {emp.department} · {risk.reasons.slice(0, 2).join(' · ')}
-          </p>
-          {analysis?.note ? (
-            <p className="mt-1 line-clamp-2 text-sm text-ink-muted">
-              {SENTIMENT_EMOJI[analysis.sentiment] || '📝'} “{analysis.note}”
-              {analysis.updatedAt && (
-                <span className="ml-1 text-xs text-ink-faint">· {analysis.updatedAt.slice(0, 10)}</span>
-              )}
-            </p>
-          ) : (
-            <p className="mt-1 text-xs text-ink-faint">No note yet.</p>
-          )}
+          <p className="truncate text-xs text-ink-muted">{emp.department || '—'}</p>
         </div>
-        <div className="hidden gap-4 text-center text-xs text-ink-muted sm:flex">
-          <Metric label="Rating" value={latestRating === '—' ? '—' : `${latestRating}/5`} />
-          <Metric label="Open griev." value={openGrievances} warn={openGrievances > 0} />
-          <Metric label="Last 1:1" value={last1on1} />
-        </div>
-        <button type="button" onClick={() => setExpanded((v) => !v)} className="btn-secondary text-xs">
-          {expanded ? 'Close' : analysis?.note ? 'Notes' : 'Add note'}
-        </button>
+        <span className="flex gap-3 text-center text-xs text-ink-muted">
+          <span>
+            <span className="block text-sm font-semibold text-ink">{latestRating === '—' ? '—' : `${latestRating}/5`}</span>
+            <span className="text-[10px] uppercase text-ink-faint">Rating</span>
+          </span>
+          <span>
+            <span className={`block text-sm font-semibold ${openGrievances > 0 ? 'text-rose-300' : 'text-ink'}`}>
+              {openGrievances}
+            </span>
+            <span className="text-[10px] uppercase text-ink-faint">Griev.</span>
+          </span>
+        </span>
       </div>
 
-      {expanded && (
-        <div className="space-y-3 border-t border-white/10 bg-black/10 p-3">
-          {risk.reasons.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {risk.reasons.map((r) => (
-                <span key={r} className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-ink-muted">
-                  {r}
-                </span>
-              ))}
-            </div>
-          )}
-          <div>
-            <label className="text-xs font-medium uppercase tracking-wide text-ink-faint">
-              Your private note (only you and other managers see this)
-            </label>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={3}
-              placeholder="Your read on this person right now…"
-              className="input mt-1 text-sm"
-            />
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex gap-1">
-              {SENTIMENTS.map((s) => (
-                <button
-                  key={s.key}
-                  type="button"
-                  onClick={() => setSentiment(s.key)}
-                  className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                    sentiment === s.key ? 'bg-white/15 text-ink' : 'text-ink-muted hover:bg-white/5'
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-            <button type="button" onClick={handleSave} disabled={saving || !dirty} className="btn-primary text-xs">
-              {saving ? 'Saving…' : 'Save note'}
-            </button>
-          </div>
-          <p className="text-[11px] text-ink-faint">
-            A “Concern” note keeps the row red until you change it; grievance closures and positive updates lift the
-            colour automatically.
+      <div className="mt-2 flex-1 rounded-lg bg-black/10 p-2 text-sm text-ink-muted">
+        {analysis?.note ? (
+          <p className="line-clamp-3">
+            {SENTIMENT_EMOJI[analysis.sentiment] || '📝'} “{analysis.note}”
           </p>
-        </div>
-      )}
+        ) : (
+          <p className="text-ink-faint">No note yet.</p>
+        )}
+      </div>
+
+      <div className="mt-2 flex items-center justify-between">
+        <span className="truncate text-[11px] text-ink-faint">
+          {row.risk.reasons.slice(0, 1)[0] || ''}
+          {analysis?.updatedAt ? ` · ${analysis.updatedAt.slice(0, 10)}` : ''}
+        </span>
+        <button type="button" onClick={onEdit} className="btn-secondary text-xs">
+          {analysis?.note ? 'Edit note' : 'Add note'}
+        </button>
+      </div>
     </div>
   )
 }
 
-function Metric({ label, value, warn }) {
+function NoteModal({ row, onClose, onSave }) {
+  const { emp, analysis, risk } = row
+  const [note, setNote] = useState(analysis?.note || '')
+  const [sentiment, setSentiment] = useState(analysis?.sentiment || 'neutral')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    setSaving(true)
+    await onSave(note.trim(), sentiment)
+    setSaving(false)
+  }
+
   return (
-    <div>
-      <p className={`text-sm font-semibold ${warn ? 'text-rose-300' : 'text-ink'}`}>{value}</p>
-      <p className="text-[10px] uppercase tracking-wide text-ink-faint">{label}</p>
-    </div>
+    <Modal title={`Notes — ${emp.name}`} onClose={onClose}>
+      <div className="space-y-4">
+        {risk.reasons.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {risk.reasons.map((r) => (
+              <span key={r} className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-ink-muted">
+                {r}
+              </span>
+            ))}
+          </div>
+        )}
+        <div>
+          <label className="text-xs font-medium uppercase tracking-wide text-ink-faint">
+            Your private note (only you and other managers see this)
+          </label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={4}
+            placeholder="Your read on this person right now…"
+            className="input mt-1 text-sm"
+          />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex gap-1">
+            {SENTIMENTS.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setSentiment(s.key)}
+                className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                  sentiment === s.key ? 'bg-white/15 text-ink' : 'text-ink-muted hover:bg-white/5'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="btn-secondary text-xs">
+              Cancel
+            </button>
+            <button type="button" onClick={handleSave} disabled={saving} className="btn-primary text-xs">
+              {saving ? 'Saving…' : 'Save note'}
+            </button>
+          </div>
+        </div>
+        <p className="text-[11px] text-ink-faint">
+          A “Concern” note keeps the dashboard row red until you change it; grievance closures and positive updates lift
+          the colour automatically.
+        </p>
+      </div>
+    </Modal>
   )
 }

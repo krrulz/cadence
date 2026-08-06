@@ -17,12 +17,13 @@ import { birthdayState } from '../lib/birthday.js'
 import { isManagedBy, hasNoManager } from '../lib/manager.js'
 import { computeResourceRisk } from '../lib/resourceRisk.js'
 
-// Happiness/risk row tint on the roster.
-const ROW_TINT = {
-  red: 'bg-rose-500/10 hover:bg-rose-500/[0.16]',
-  amber: 'bg-amber-500/10 hover:bg-amber-500/[0.16]',
-  green: 'bg-emerald-500/[0.07] hover:bg-emerald-500/[0.13]',
+// Happiness/risk tint on the roster cards.
+const CARD_TINT = {
+  red: 'border-rose-500/40 bg-rose-500/[0.08] hover:bg-rose-500/[0.13]',
+  amber: 'border-amber-500/40 bg-amber-500/[0.08] hover:bg-amber-500/[0.13]',
+  green: 'border-emerald-500/30 bg-emerald-500/[0.05] hover:bg-emerald-500/[0.1]',
 }
+const DOT = { red: 'bg-rose-400', amber: 'bg-amber-400', green: 'bg-emerald-400' }
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -32,6 +33,8 @@ export default function AdminDashboard() {
   const [summaries, setSummaries] = useState([])
   const [records, setRecords] = useState({})
   const [search, setSearch] = useState('')
+  const [deptFilter, setDeptFilter] = useState('')
+  const [riskFilter, setRiskFilter] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
   const [showReport, setShowReport] = useState(false)
   const [selectedIds, setSelectedIds] = useState(() => new Set())
@@ -102,13 +105,20 @@ export default function AdminDashboard() {
     return map
   }, [summaries, records, oneOnOnes, analysis])
 
+  const departments = useMemo(
+    () => [...new Set(managed.map((s) => s.user.department).filter(Boolean))].sort(),
+    [managed],
+  )
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return managed
-    return managed.filter(
-      (s) => s.user.name?.toLowerCase().includes(q) || s.user.department?.toLowerCase().includes(q),
-    )
-  }, [managed, search])
+    return managed.filter((s) => {
+      if (q && !(s.user.name?.toLowerCase().includes(q) || s.user.department?.toLowerCase().includes(q))) return false
+      if (deptFilter && s.user.department !== deptFilter) return false
+      if (riskFilter && riskByEmp[s.user.id] !== riskFilter) return false
+      return true
+    })
+  }, [managed, search, deptFilter, riskFilter, riskByEmp])
 
   async function assignToMe(empId) {
     await updateUserProfile(empId, { managerUid: user.uid, managerName: profile?.name || '' })
@@ -196,33 +206,58 @@ export default function AdminDashboard() {
       </div>
 
       <div className="mt-6 card">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <h2 className="font-semibold text-ink">
-              Roster
-              {selectedIds.size > 0 && (
-                <span className="ml-2 text-sm font-normal text-ink-faint">{selectedIds.size} selected</span>
-              )}
-            </h2>
-            <span className="flex items-center gap-3 text-xs text-ink-faint">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" /> Healthy
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Watch
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-rose-400" /> At risk
-              </span>
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <h2 className="font-semibold text-ink">
+            Roster
+            <span className="ml-2 text-sm font-normal text-ink-faint">{filtered.length}</span>
+          </h2>
+          <span className="flex items-center gap-3 text-xs text-ink-faint">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" /> Healthy
             </span>
-          </div>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Watch
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-rose-400" /> At risk
+            </span>
+          </span>
+        </div>
+
+        {/* Filters — slice 30 people down instead of scrolling. */}
+        <div className="mb-3 flex flex-wrap items-center gap-2">
           <input
             type="text"
-            placeholder="Search by name or department…"
+            placeholder="Search name or department…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="input w-full sm:w-auto sm:max-w-xs"
           />
+          <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} className="input w-auto py-2">
+            <option value="">All departments</option>
+            {departments.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+          <select value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)} className="input w-auto py-2">
+            <option value="">All statuses</option>
+            <option value="red">At risk</option>
+            <option value="amber">Watch</option>
+            <option value="green">Healthy</option>
+          </select>
+          {filtered.length > 0 && (
+            <label className="ml-auto flex cursor-pointer items-center gap-2 text-sm text-ink-muted">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-mint"
+                checked={allFilteredSelected}
+                onChange={toggleAllFiltered}
+              />
+              Select all
+            </label>
+          )}
         </div>
 
         {selectedIds.size > 0 && (
@@ -245,93 +280,27 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[940px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-surface-border text-xs uppercase tracking-wide text-ink-faint">
-                <th className="py-2 pr-2">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-mint"
-                    checked={allFilteredSelected}
-                    onChange={toggleAllFiltered}
-                    aria-label="Select all"
-                  />
-                </th>
-                <th className="py-2 pr-4">Name</th>
-                <th className="py-2 pr-4">Department</th>
-                <th className="py-2 pr-4">Latest Rating</th>
-                <th className="py-2 pr-4">Open Grievances</th>
-                <th className="py-2 pr-4">Last Recognition</th>
-                <th className="py-2 pr-4">Last Feedback</th>
-                <th className="py-2 pr-4">Leave Balance</th>
-                <th className="py-2 pr-4">Attention</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((s) => (
-                <tr
-                  key={s.user.id}
-                  onClick={() => navigate(`/employee/${s.user.id}`)}
-                  className={`cursor-pointer border-b border-white/5 transition-colors ${ROW_TINT[riskByEmp[s.user.id]] || ''}`}
-                >
-                  <td className="py-2 pr-2" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-mint"
-                      checked={selectedIds.has(s.user.id)}
-                      onChange={() => toggleRow(s.user.id)}
-                      aria-label={`Select ${s.user.name}`}
-                    />
-                  </td>
-                  <td className="py-2 pr-4 font-medium text-ink">
-                    <div className="flex items-center gap-2">
-                      <Avatar name={s.user.name} colorKey={s.user.id} size="sm" />
-                      <span>{s.user.name}</span>
-                    </div>
-                  </td>
-                  <td className="py-2 pr-4 text-ink-muted">{s.user.department}</td>
-                  <td className="py-2 pr-4 text-ink-muted">
-                    {s.latestPerformance ? s.latestPerformance.rating : '—'}
-                  </td>
-                  <td className="py-2 pr-4 text-ink-muted">{s.openGrievanceCount}</td>
-                  <td className="py-2 pr-4 text-ink-muted">{s.latestRecognition?.date || '—'}</td>
-                  <td className="py-2 pr-4 text-ink-muted">{s.latestFeedback?.date || '—'}</td>
-                  <td className="py-2 pr-4 text-ink-muted">{s.leaveBalance.total}</td>
-                  <td className="py-2 pr-4">
-                    <div className="flex flex-wrap gap-1">
-                      {(() => {
-                        // Birthday reminder: visible from the day before until
-                        // the end of the birthday itself.
-                        const bday = birthdayState(s.user.birthday)
-                        return (
-                          bday && (
-                            <span className="inline-flex items-center whitespace-nowrap rounded-full bg-fuchsia-500/15 px-2.5 py-0.5 text-xs font-medium text-fuchsia-300 ring-1 ring-inset ring-fuchsia-500/30">
-                              🎂 {bday === 'today' ? 'Birthday today' : 'Birthday tomorrow'}
-                            </span>
-                          )
-                        )
-                      })()}
-                      {s.flags.map((flag) => (
-                        <StatusBadge key={flag} label={flag} />
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="py-8 text-center text-ink-faint">
-                    {managed.length === 0
-                      ? 'No employees are assigned to you yet.' +
-                        (unassigned.length ? ' Claim some from the Unassigned list below.' : '')
-                      : 'No employees match your search.'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {filtered.length === 0 ? (
+          <p className="py-8 text-center text-ink-faint">
+            {managed.length === 0
+              ? 'No employees are assigned to you yet.' +
+                (unassigned.length ? ' Claim some from the Unassigned list below.' : '')
+              : 'No employees match these filters.'}
+          </p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((s) => (
+              <RosterCard
+                key={s.user.id}
+                summary={s}
+                risk={riskByEmp[s.user.id]}
+                selected={selectedIds.has(s.user.id)}
+                onToggle={() => toggleRow(s.user.id)}
+                onOpen={() => navigate(`/employee/${s.user.id}`)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {unassigned.length > 0 && (
@@ -414,6 +383,68 @@ function BulkReassignModal({ count, admins, onClose, onReassign }) {
         </div>
       </form>
     </Modal>
+  )
+}
+
+// Compact person card for the roster grid — tinted by happiness/risk. Clicking
+// the body opens the employee; the checkbox drives bulk selection.
+function RosterCard({ summary: s, risk, selected, onToggle, onOpen }) {
+  const bday = birthdayState(s.user.birthday)
+  const flags = s.flags.filter((f) => f !== 'OK')
+  return (
+    <div
+      className={`group relative cursor-pointer rounded-xl border p-3 transition-colors ${CARD_TINT[risk] || 'border-surface-border hover:bg-white/[0.03]'} ${
+        selected ? 'ring-2 ring-mint/60' : ''
+      }`}
+      onClick={onOpen}
+    >
+      <div className="flex items-start gap-2.5">
+        <input
+          type="checkbox"
+          className="mt-1 h-4 w-4 shrink-0 accent-mint"
+          checked={selected}
+          onChange={onToggle}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Select ${s.user.name}`}
+        />
+        <Avatar name={s.user.name} colorKey={s.user.id} size="md" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate font-semibold text-ink group-hover:underline">{s.user.name}</span>
+            <span className={`h-2 w-2 shrink-0 rounded-full ${DOT[risk] || 'bg-white/20'}`} />
+          </div>
+          <p className="truncate text-xs text-ink-muted">{s.user.department || '—'}</p>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+        <Metric label="Rating" value={s.latestPerformance ? `${s.latestPerformance.rating}/5` : '—'} />
+        <Metric label="Grievances" value={s.openGrievanceCount} warn={s.openGrievanceCount > 0} />
+        <Metric label="Leave" value={s.leaveBalance.total} />
+      </div>
+
+      {(bday || flags.length > 0) && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {bday && (
+            <span className="inline-flex items-center whitespace-nowrap rounded-full bg-fuchsia-500/15 px-2 py-0.5 text-[10px] font-medium text-fuchsia-300 ring-1 ring-inset ring-fuchsia-500/30">
+              🎂 {bday === 'today' ? 'Today' : 'Tomorrow'}
+            </span>
+          )}
+          {flags.map((flag) => (
+            <StatusBadge key={flag} label={flag} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Metric({ label, value, warn }) {
+  return (
+    <div className="rounded-lg bg-black/10 py-1.5">
+      <p className={`text-sm font-semibold ${warn ? 'text-rose-300' : 'text-ink'}`}>{value}</p>
+      <p className="text-[10px] uppercase tracking-wide text-ink-faint">{label}</p>
+    </div>
   )
 }
 
