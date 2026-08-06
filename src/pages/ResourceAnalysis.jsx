@@ -17,6 +17,7 @@ const SENTIMENTS = [
   { key: 'neutral', label: '😐 Neutral' },
   { key: 'concern', label: '⚠️ Concern' },
 ]
+const SENTIMENT_EMOJI = { positive: '🙂', neutral: '😐', concern: '⚠️' }
 
 export default function ResourceAnalysis() {
   const { user, profile } = useAuth()
@@ -148,6 +149,16 @@ function ResourceRow({ row, onOpen, onSave }) {
           <p className="truncate text-xs text-ink-muted">
             {emp.department} · {risk.reasons.slice(0, 2).join(' · ')}
           </p>
+          {analysis?.note ? (
+            <p className="mt-1 line-clamp-2 text-sm text-ink-muted">
+              {SENTIMENT_EMOJI[analysis.sentiment] || '📝'} “{analysis.note}”
+              {analysis.updatedAt && (
+                <span className="ml-1 text-xs text-ink-faint">· {analysis.updatedAt.slice(0, 10)}</span>
+              )}
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-ink-faint">No note yet.</p>
+          )}
         </div>
         <div className="hidden gap-4 text-center text-xs text-ink-muted sm:flex">
           <Metric label="Rating" value={latestRating === '—' ? '—' : `${latestRating}/5`} />

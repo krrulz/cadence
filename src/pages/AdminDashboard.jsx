@@ -6,6 +6,7 @@ import StatusBadge from '../components/StatusBadge.jsx'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import AddEmployeeModal from '../components/AddEmployeeModal.jsx'
 import ReportModal from '../components/ReportModal.jsx'
+import Modal from '../components/Modal.jsx'
 import Avatar from '../components/Avatar.jsx'
 import Section from '../components/Section.jsx'
 import DataTable from '../components/DataTable.jsx'
@@ -37,6 +38,8 @@ export default function AdminDashboard() {
 
   const [analysis, setAnalysis] = useState([])
   const [oneOnOnes, setOneOnOnes] = useState([])
+  const [admins, setAdmins] = useState([])
+  const [showReassign, setShowReassign] = useState(false)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -53,6 +56,7 @@ export default function AdminDashboard() {
     ])
 
     const employees = users.filter((u) => u.role === 'employee')
+    setAdmins(users.filter((u) => u.role === 'admin'))
     const built = employees.map((u) =>
       buildEmployeeSummary(u, { performance, grievances, recognitions, feedback, leaves }),
     )
@@ -108,6 +112,14 @@ export default function AdminDashboard() {
 
   async function assignToMe(empId) {
     await updateUserProfile(empId, { managerUid: user.uid, managerName: profile?.name || '' })
+    loadData()
+  }
+
+  async function bulkReassign(managerUid, managerName) {
+    await Promise.all(
+      [...selectedIds].map((id) => updateUserProfile(id, { managerUid: managerUid || '', managerName: managerName || '' })),
+    )
+    setSelectedIds(new Set())
     loadData()
   }
 
@@ -212,6 +224,26 @@ export default function AdminDashboard() {
             className="input w-full sm:w-auto sm:max-w-xs"
           />
         </div>
+
+        {selectedIds.size > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-mint/30 bg-mint/[0.08] px-3 py-2 text-sm">
+            <span className="font-medium text-ink">{selectedIds.size} selected</span>
+            <span className="text-ink-faint">·</span>
+            <button type="button" onClick={() => setShowReport(true)} className="text-mint hover:underline">
+              Download report
+            </button>
+            <button type="button" onClick={() => setShowReassign(true)} className="text-mint hover:underline">
+              Reassign manager
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="ml-auto text-ink-muted hover:text-ink hover:underline"
+            >
+              Clear
+            </button>
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[940px] text-left text-sm">
@@ -329,7 +361,59 @@ export default function AdminDashboard() {
       {showReport && (
         <ReportModal scopeEmployees={scopeEmployees} records={records} onClose={() => setShowReport(false)} />
       )}
+      {showReassign && (
+        <BulkReassignModal
+          count={selectedIds.size}
+          admins={admins}
+          onClose={() => setShowReassign(false)}
+          onReassign={bulkReassign}
+        />
+      )}
     </Layout>
+  )
+}
+
+// Reassign the selected employees to a manager account (or Unassigned).
+function BulkReassignModal({ count, admins, onClose, onReassign }) {
+  const [managerUid, setManagerUid] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSubmitting(true)
+    const chosen = admins.find((a) => a.id === managerUid)
+    await onReassign(chosen ? chosen.id : '', chosen ? chosen.name : '')
+    setSubmitting(false)
+    onClose()
+  }
+
+  return (
+    <Modal title={`Reassign ${count} employee${count === 1 ? '' : 's'}`} onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <p className="text-sm text-ink-muted">
+          Move the selected employees to another manager, or set them to Unassigned (they&apos;ll leave your roster).
+        </p>
+        <label className="block text-sm">
+          <span className="font-medium text-ink">Reports to</span>
+          <select value={managerUid} onChange={(e) => setManagerUid(e.target.value)} className="input mt-1">
+            <option value="">Unassigned</option>
+            {admins.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="btn-secondary">
+            Cancel
+          </button>
+          <button type="submit" disabled={submitting} className="btn-primary">
+            {submitting ? 'Saving…' : 'Reassign'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
