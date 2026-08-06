@@ -62,6 +62,11 @@ export function updateRecord(collectionName, id, data) {
   return updateDoc(doc(db, collectionName, id), data)
 }
 
+// Upsert a doc at a known id (e.g. resourceAnalysis keyed by employeeId).
+export function setRecordById(collectionName, id, data) {
+  return setDoc(doc(db, collectionName, id), data, { merge: true })
+}
+
 export function deleteRecord(collectionName, id) {
   return deleteDoc(doc(db, collectionName, id))
 }

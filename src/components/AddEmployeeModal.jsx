@@ -13,7 +13,6 @@ const emptyForm = {
   email: '',
   password: '',
   department: '',
-  managerName: '',
   birthday: '', // 'MM-DD', no year
 }
 
@@ -27,6 +26,7 @@ async function createEmployeeAccount({
   email,
   password,
   department,
+  managerUid,
   managerName,
   dateOfJoining,
   birthday,
@@ -44,6 +44,7 @@ async function createEmployeeAccount({
       email,
       role: 'employee',
       department,
+      managerUid: managerUid || '',
       managerName: managerName || '',
       dateOfJoining: dateOfJoining || '',
       birthday: normalizeBirthday(birthday),
@@ -63,7 +64,7 @@ async function createEmployeeAccount({
   }
 }
 
-export default function AddEmployeeModal({ onClose, onCreated }) {
+export default function AddEmployeeModal({ onClose, onCreated, manager }) {
   const [mode, setMode] = useState('single')
 
   return (
@@ -86,15 +87,15 @@ export default function AddEmployeeModal({ onClose, onCreated }) {
       </div>
 
       {mode === 'single' ? (
-        <SingleAddForm onClose={onClose} onCreated={onCreated} />
+        <SingleAddForm onClose={onClose} onCreated={onCreated} manager={manager} />
       ) : (
-        <BulkUploadPanel onClose={onClose} onCreated={onCreated} />
+        <BulkUploadPanel onClose={onClose} onCreated={onCreated} manager={manager} />
       )}
     </Modal>
   )
 }
 
-function SingleAddForm({ onClose, onCreated }) {
+function SingleAddForm({ onClose, onCreated, manager }) {
   const [form, setForm] = useState(emptyForm)
   const [entitlements, setEntitlements] = useState(DEFAULT_LEAVE_ENTITLEMENTS)
   const [error, setError] = useState('')
@@ -113,7 +114,12 @@ function SingleAddForm({ onClose, onCreated }) {
     setError('')
     setSubmitting(true)
 
-    const result = await createEmployeeAccount({ ...form, leaveEntitlements: entitlements })
+    const result = await createEmployeeAccount({
+      ...form,
+      managerUid: manager?.uid || '',
+      managerName: manager?.name || '',
+      leaveEntitlements: entitlements,
+    })
     setSubmitting(false)
 
     if (result.ok) {
@@ -157,8 +163,8 @@ function SingleAddForm({ onClose, onCreated }) {
             className="input"
           />
         </Field>
-        <Field label="Manager Name">
-          <input value={form.managerName} onChange={(e) => update('managerName', e.target.value)} className="input" />
+        <Field label="Manager">
+          <input value={manager?.name || 'You'} disabled className="input opacity-70" />
         </Field>
         <BirthdayField value={form.birthday} onChange={(v) => update('birthday', v)} />
       </div>
@@ -203,7 +209,7 @@ function validateBulkRow(row) {
   return null
 }
 
-function BulkUploadPanel({ onClose, onCreated }) {
+function BulkUploadPanel({ onClose, onCreated, manager }) {
   const [rows, setRows] = useState([]) // { name, email, password, department, managername, dateofjoining, error, status }
   const [fileName, setFileName] = useState('')
   const [processing, setProcessing] = useState(false)
@@ -241,7 +247,8 @@ function BulkUploadPanel({ onClose, onCreated }) {
         email: row.email,
         password: row.password,
         department: row.department,
-        managerName: row.managername,
+        managerUid: manager?.uid || '',
+        managerName: manager?.name || row.managername || '',
         dateOfJoining: row.dateofjoining,
         leaveEntitlements: DEFAULT_LEAVE_ENTITLEMENTS,
       })

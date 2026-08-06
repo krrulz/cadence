@@ -10,13 +10,15 @@ import Avatar from '../components/Avatar.jsx'
 import Section from '../components/Section.jsx'
 import DataTable from '../components/DataTable.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { getAllUsers, getAllRecords } from '../lib/firestoreHelpers.js'
+import { getAllUsers, getAllRecords, updateUserProfile } from '../lib/firestoreHelpers.js'
 import { buildEmployeeSummary, sortByDateDesc } from '../lib/aggregate.js'
 import { birthdayState } from '../lib/birthday.js'
+import { isManagedBy, hasNoManager } from '../lib/manager.js'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
+  const admin = { uid: user.uid, name: profile?.name }
   const [loading, setLoading] = useState(true)
   const [summaries, setSummaries] = useState([])
   const [records, setRecords] = useState({})
@@ -50,15 +52,28 @@ export default function AdminDashboard() {
     loadData()
   }, [loadData])
 
+  // Only your own reportees appear in the roster; everyone else is either
+  // another manager's or sitting unassigned (shown in a separate area below).
+  const managed = useMemo(
+    () => summaries.filter((s) => isManagedBy(s.user, admin)),
+    [summaries, admin.uid, admin.name],
+  )
+  const unassigned = useMemo(() => summaries.filter((s) => hasNoManager(s.user)), [summaries])
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return summaries
-    return summaries.filter(
+    if (!q) return managed
+    return managed.filter(
       (s) => s.user.name?.toLowerCase().includes(q) || s.user.department?.toLowerCase().includes(q),
     )
-  }, [summaries, search])
+  }, [managed, search])
 
-  const allEmployees = useMemo(() => summaries.map((s) => s.user), [summaries])
+  async function assignToMe(empId) {
+    await updateUserProfile(empId, { managerUid: user.uid, managerName: profile?.name || '' })
+    loadData()
+  }
+
+  const allEmployees = useMemo(() => managed.map((s) => s.user), [managed])
   const scopeEmployees = useMemo(
     () => (selectedIds.size ? allEmployees.filter((e) => selectedIds.has(e.id)) : allEmployees),
     [allEmployees, selectedIds],
@@ -83,15 +98,15 @@ export default function AdminDashboard() {
   }
 
   const stats = useMemo(() => {
-    const teamSize = summaries.length
-    const totalOpenGrievances = summaries.reduce((sum, s) => sum + s.openGrievanceCount, 0)
-    const rated = summaries.filter((s) => s.latestPerformance)
+    const teamSize = managed.length
+    const totalOpenGrievances = managed.reduce((sum, s) => sum + s.openGrievanceCount, 0)
+    const rated = managed.filter((s) => s.latestPerformance)
     const avgRating = rated.length
       ? (rated.reduce((sum, s) => sum + Number(s.latestPerformance.rating), 0) / rated.length).toFixed(1)
       : '—'
-    const flagged = summaries.filter((s) => !(s.flags.length === 1 && s.flags[0] === 'OK')).length
+    const flagged = managed.filter((s) => !(s.flags.length === 1 && s.flags[0] === 'OK')).length
     return { teamSize, totalOpenGrievances, avgRating, flagged }
-  }, [summaries])
+  }, [managed])
 
   // Recognitions addressed to the admin themselves. The roster only lists
   // employees, so without this an employee-given recognition to the admin has
@@ -112,7 +127,7 @@ export default function AdminDashboard() {
   return (
     <Layout>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-ink tracking-tight">Admin Dashboard</h1>
+        <h1 className="text-2xl font-bold text-ink tracking-tight">My Team</h1>
         <div className="flex gap-2">
           <button type="button" onClick={() => setShowReport(true)} className="btn-secondary">
             ⤓ Download report
@@ -224,7 +239,10 @@ export default function AdminDashboard() {
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={9} className="py-8 text-center text-ink-faint">
-                    No employees match your search.
+                    {managed.length === 0
+                      ? 'No employees are assigned to you yet.' +
+                        (unassigned.length ? ' Claim some from the Unassigned list below.' : '')
+                      : 'No employees match your search.'}
                   </td>
                 </tr>
               )}
@@ -232,6 +250,10 @@ export default function AdminDashboard() {
           </table>
         </div>
       </div>
+
+      {unassigned.length > 0 && (
+        <UnassignedPanel unassigned={unassigned} onAssign={assignToMe} />
+      )}
 
       {myRecognitions.length > 0 && (
         <div className="mt-6">
@@ -251,11 +273,58 @@ export default function AdminDashboard() {
       )}
 
       {showAddModal && (
-        <AddEmployeeModal onClose={() => setShowAddModal(false)} onCreated={loadData} />
+        <AddEmployeeModal manager={admin} onClose={() => setShowAddModal(false)} onCreated={loadData} />
       )}
       {showReport && (
         <ReportModal scopeEmployees={scopeEmployees} records={records} onClose={() => setShowReport(false)} />
       )}
     </Layout>
+  )
+}
+
+// Employees with no manager set — hidden from every roster until someone claims
+// them. Collapsed by default so they don't clutter the main view.
+function UnassignedPanel({ unassigned, onAssign }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="mt-6 card border-amber-500/30">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 text-left"
+      >
+        <span className="font-semibold text-ink">
+          Unassigned employees
+          <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
+            {unassigned.length}
+          </span>
+        </span>
+        <span className="text-ink-faint">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <>
+          <p className="mt-2 text-sm text-ink-muted">
+            These have no manager set, so they don&apos;t appear in any manager&apos;s team. Claim the ones that report
+            to you.
+          </p>
+          <ul className="mt-3 divide-y divide-white/5">
+            {unassigned.map((s) => (
+              <li key={s.user.id} className="flex items-center justify-between gap-3 py-2">
+                <span className="flex items-center gap-2">
+                  <Avatar name={s.user.name} colorKey={s.user.id} size="sm" />
+                  <span>
+                    <span className="text-sm font-medium text-ink">{s.user.name}</span>
+                    <span className="ml-2 text-xs text-ink-faint">{s.user.department}</span>
+                  </span>
+                </span>
+                <button type="button" onClick={() => onAssign(s.user.id)} className="btn-secondary text-xs">
+                  Assign to me
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
   )
 }

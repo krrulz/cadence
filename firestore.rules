@@ -31,9 +31,19 @@ service cloud.firestore {
         isOwner(uid) &&
         request.resource.data.role == resource.data.role &&
         request.resource.data.leaveEntitlements == resource.data.leaveEntitlements &&
-        request.resource.data.get('leaveOpeningTaken', {}) == resource.data.get('leaveOpeningTaken', {})
+        request.resource.data.get('leaveOpeningTaken', {}) == resource.data.get('leaveOpeningTaken', {}) &&
+        // Employees can't set/change their own manager assignment.
+        request.resource.data.get('managerUid', '') == resource.data.get('managerUid', '')
       );
       allow delete: if isAdmin();
+    }
+
+    // --- resourceAnalysis -------------------------------------------------
+    // A manager's private per-employee remark + sentiment used to compute the
+    // happiness/risk colour. Admin-only: employees must never see their own
+    // manager's private assessment. Doc id = employeeId.
+    match /resourceAnalysis/{employeeId} {
+      allow read, write: if isAdmin();
     }
 
     // --- performance ------------------------------------------------------

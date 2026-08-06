@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Users,
   AlertTriangle,
+  Gauge,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import ChangePasswordModal from './ChangePasswordModal.jsx'
@@ -23,6 +24,7 @@ import Avatar from './Avatar.jsx'
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutGrid, adminOnly: true, end: true },
   { to: '/me', label: 'My Dashboard', icon: LayoutGrid, employeeOnly: true, end: true },
+  { to: '/resource-analysis', label: 'Resource Analysis', icon: Gauge, adminOnly: true },
   { to: '/analytics', label: 'Analytics', icon: BarChart3, adminOnly: true },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays },
   { to: '/links', label: 'Links', icon: Link2 },

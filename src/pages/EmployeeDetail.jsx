@@ -19,6 +19,7 @@ import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFi
 import { useAuth } from '../contexts/AuthContext.jsx'
 import {
   getUserDoc,
+  getAllUsers,
   getRecordsForEmployee,
   addRecord,
   updateRecord,
@@ -337,6 +338,7 @@ export default function EmployeeDetail() {
 
 function ProfileHeader({ employee, records, leaveBalance, onDeleted, onChanged }) {
   const [editingBirthday, setEditingBirthday] = useState(false)
+  const [editingManager, setEditingManager] = useState(false)
   const reviews = records.performance.filter(isReview)
   const latestReview = reviews.length ? latestByDate(reviews, 'date') : null
   const openGrievances = records.grievances.filter((g) => g.status !== 'Resolved').length
@@ -364,7 +366,14 @@ function ProfileHeader({ employee, records, leaveBalance, onDeleted, onChanged }
               >
                 edit
               </button>{' '}
-              · Manager {employee.managerName || '—'}
+              · Manager {employee.managerName || 'Unassigned'}{' '}
+              <button
+                type="button"
+                onClick={() => setEditingManager(true)}
+                className="text-xs text-mint hover:underline"
+              >
+                edit
+              </button>
             </p>
           </div>
         </div>
@@ -373,6 +382,9 @@ function ProfileHeader({ employee, records, leaveBalance, onDeleted, onChanged }
 
       {editingBirthday && (
         <SetBirthdayModal employee={employee} onClose={() => setEditingBirthday(false)} onSaved={onChanged} />
+      )}
+      {editingManager && (
+        <SetManagerModal employee={employee} onClose={() => setEditingManager(false)} onSaved={onChanged} />
       )}
 
       <div className="mt-4 grid grid-cols-3 gap-3">
@@ -414,6 +426,63 @@ function SetBirthdayModal({ employee, onClose, onSaved }) {
           Only the day and month are stored — the year of birth is never collected.
         </p>
         <BirthdayField value={birthday} onChange={setBirthday} />
+        {error && <p className="text-sm text-rose-400">{error}</p>}
+        <FormActions submitting={submitting} onCancel={onClose} />
+      </form>
+    </Modal>
+  )
+}
+
+function SetManagerModal({ employee, onClose, onSaved }) {
+  const [admins, setAdmins] = useState([])
+  const [managerUid, setManagerUid] = useState(employee.managerUid || '')
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    getAllUsers().then((users) => {
+      setAdmins(users.filter((u) => u.role === 'admin'))
+      setLoading(false)
+    })
+  }, [])
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSubmitting(true)
+    setError('')
+    const chosen = admins.find((a) => a.id === managerUid)
+    try {
+      await updateUserProfile(employee.id, {
+        managerUid: chosen ? chosen.id : '',
+        managerName: chosen ? chosen.name : '',
+      })
+      onSaved?.()
+      onClose()
+    } catch (err) {
+      setError(err.message || 'Could not update manager.')
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Modal title={`Manager — ${employee.name}`} onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <p className="text-sm text-ink-muted">
+          The employee only appears in the assigned manager&apos;s dashboard and Resource Analysis. Unassigned employees
+          are hidden until a manager claims them.
+        </p>
+        <label className="block text-sm">
+          <span className="font-medium text-ink">Reports to</span>
+          <select value={managerUid} onChange={(e) => setManagerUid(e.target.value)} className="input mt-1" disabled={loading}>
+            <option value="">Unassigned</option>
+            {admins.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </label>
         {error && <p className="text-sm text-rose-400">{error}</p>}
         <FormActions submitting={submitting} onCancel={onClose} />
       </form>

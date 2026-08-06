@@ -183,7 +183,8 @@ Cadence can email a short notification when something relevant happens — a lea
 
 ## Data model (Firestore)
 
-- `users/{uid}` — `name, email, role ('admin'|'employee'), department, managerName, dateOfJoining, birthday, status, leaveEntitlements, leaveOpeningTaken, leaveCarryOver`. `birthday` is stored as `'MM-DD'` only — the year of birth is never collected. Shown as "23 Jul" in profile headers (replacing the joined date), as 🎂 pills on the calendar, as a reminder tag on the admin roster from the day before through the birthday, and as a wishes banner on the employee's Overview on the day.
+- `users/{uid}` — `name, email, role ('admin'|'employee'), department, managerUid, managerName, dateOfJoining, birthday, status, leaveEntitlements, leaveOpeningTaken, leaveCarryOver`. `managerUid` links an employee to their manager's admin account: the admin dashboard and Resource Analysis show only that admin's reportees; employees with no manager sit in a claimable "Unassigned" list. (UI-level scoping — not enforced in rules.)
+- `resourceAnalysis/{employeeId}` — `note, sentiment ('positive'|'neutral'|'concern'), updatedByUid, updatedAt` — a manager's **private** per-employee remark. **Admin-only in rules** (employees can never read their manager's assessment). Feeds the automatic happiness/risk row colour in Resource Analysis, alongside grievances, performance, recognitions and 1:1/feedback recency. `birthday` is stored as `'MM-DD'` only — the year of birth is never collected. Shown as "23 Jul" in profile headers (replacing the joined date), as 🎂 pills on the calendar, as a reminder tag on the admin roster from the day before through the birthday, and as a wishes banner on the employee's Overview on the day.
 - `performance/{id}` — `employeeId, date, entryType ('Review'|'Achievement')`, plus:
   - `Review` (admin-authored) — `reviewPeriod, rating (1-5), reviewer, comments, goals`
   - `Achievement` (self-logged by the employee) — `title, description`

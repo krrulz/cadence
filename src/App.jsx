@@ -7,6 +7,7 @@ import EmployeeDashboard from './pages/EmployeeDashboard.jsx'
 import PtoCalendar from './pages/PtoCalendar.jsx'
 import Links from './pages/Links.jsx'
 import Analytics from './pages/Analytics.jsx'
+import ResourceAnalysis from './pages/ResourceAnalysis.jsx'
 import Prototype from './pages/Prototype.jsx'
 
 export default function App() {
@@ -60,6 +61,14 @@ export default function App() {
         element={
           <ProtectedRoute requireAdmin>
             <Analytics />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/resource-analysis"
+        element={
+          <ProtectedRoute requireAdmin>
+            <ResourceAnalysis />
           </ProtectedRoute>
         }
       />
