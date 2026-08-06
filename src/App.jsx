@@ -8,6 +8,7 @@ import PtoCalendar from './pages/PtoCalendar.jsx'
 import Links from './pages/Links.jsx'
 import Analytics from './pages/Analytics.jsx'
 import ResourceAnalysis from './pages/ResourceAnalysis.jsx'
+import TeamSkills from './pages/TeamSkills.jsx'
 import Prototype from './pages/Prototype.jsx'
 
 export default function App() {
@@ -69,6 +70,14 @@ export default function App() {
         element={
           <ProtectedRoute requireAdmin>
             <ResourceAnalysis />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/team-skills"
+        element={
+          <ProtectedRoute requireAdmin>
+            <TeamSkills />
           </ProtectedRoute>
         }
       />
