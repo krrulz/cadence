@@ -181,6 +181,27 @@ Cadence can email a short notification when something relevant happens — a lea
 
 > Note: `nodemailer` is a runtime dependency of this function. No email is ever sent unless SMTP is configured, and the content is a short "log in to view" nudge — the actual records stay in the app.
 
+## 9. Skill Survey (public, no login required)
+
+`/skills-survey` is a **public page** — for employees who don't have a Cadence login yet to self-report their skills. It writes into the same `skills` collection the in-app Skill Matrix uses, so submissions show up under that employee's matrix automatically.
+
+**Security model**: the page never talks to Firestore directly. Every read/write goes through [`api/skill-survey.js`](./api/skill-survey.js), which uses the Admin SDK (bypassing security rules) and is gated by a **shared passcode** checked server-side. The client-side `skills` Firestore rules are completely unchanged — there is no rule that lets an anonymous browser write to `skills`; this endpoint is the only path. The employee picker only ever exposes **names** (no email/department), and only after the correct passcode is supplied.
+
+Flow: enter passcode → pick your name from a dropdown → a confirmation screen ("You're about to fill this out as NAME") to guard against picking the wrong person → rate skills (seeded catalog per category, plus a free-text "add your own" per category) → submit. A resubmission for the same person updates existing skill levels rather than duplicating rows.
+
+### Setup
+
+1. Set a passcode and share it with the team through whatever channel you already use to distribute the survey link (email, chat) — **not** committed anywhere.
+2. Add these variables in `.env.local` (local dev) and Vercel → Settings → Environment Variables (production):
+   ```
+   FIREBASE_SERVICE_ACCOUNT={"type":"service_account", …}   # same as §7/§8
+   FIREBASE_PROJECT_ID=teamtracker-a9333                    # shared with the other functions
+   SKILL_SURVEY_PASSCODE=<a code you choose>
+   ```
+3. Share the link: `https://<your-vercel-domain>/skills-survey`.
+
+Until `SKILL_SURVEY_PASSCODE` and `FIREBASE_SERVICE_ACCOUNT` are both set, the page shows a clear "Server not configured" message and nothing can be submitted.
+
 ## Data model (Firestore)
 
 - `users/{uid}` — `name, email, role ('admin'|'employee'), department, managerUid, managerName, dateOfJoining, birthday, status, leaveEntitlements, leaveOpeningTaken, leaveCarryOver`. `managerUid` links an employee to their manager's admin account: the admin dashboard and Resource Analysis show only that admin's reportees; employees with no manager sit in a claimable "Unassigned" list. (UI-level scoping — not enforced in rules.)
@@ -194,7 +215,7 @@ Cadence can email a short notification when something relevant happens — a lea
 - `leaves/{id}` — `employeeId, leaveType, dateFrom, dateTo, numDays, halfDay, status ('Pending'|'Approved'|'Rejected'), approvedBy`. `numDays` counts **working days** (weekends and public holidays excluded); a single-day request may be a `halfDay` (0.5).
 - `holidays/{id}` — `date ('YYYY-MM-DD'), name` — company public-holiday calendar. Admin-maintained on the Calendar page; highlighted on the calendar and excluded from leave-day counts.
 - `goals/{id}` — `employeeId, objective, description, status ('Not Started'|'In Progress'|'At Risk'|'Completed'), dueDate, progress (0-100), keyResults [{ text, done }], ownerName, createdByUid, createdByRole, createdAt` — collaborative OKRs; both the employee and admin can edit and tick key results. Progress is derived from key results when present, else the manual `progress` value.
-- `skills/{id}` — `employeeId, name, category ('Technical'|'Functional'|'Behavioural'|'Domain'), level (1-5), updatedByUid, updatedByRole, createdAt, updatedAt` — the tech/functional **Skill Matrix**; collaborative (employee + admin can add/rate/remove), interactive 1–5 expertise pips grouped by category. Shown as a tab on the employee detail page and in the employee's own workspace.
+- `skills/{id}` — `employeeId, name, category ('Professional Skills'|'Tools/Technologies'|'Domain Knowledge'|'Soft Skill'), level (1-5), updatedByUid, updatedByRole, createdAt, updatedAt` — the **Skill Matrix**; collaborative (employee + admin can add/rate/remove), interactive 1–5 expertise pips grouped by category. Shown as a tab on the employee detail page, in the employee's own workspace, in the admin **Team Skills** finder/gap-analysis page, and populated by the public **Skill Survey** (`updatedByRole: 'self-survey'`; see §9).
 - `bookmarks/{id}` — `title, url, category, description, createdAt` — admin-curated useful links shown to the whole team on the **Links** page
 - `oneOnOnes/{id}` — `employeeId, date, title, agenda, createdBy, createdAt`; with subcollections `notes/{id}` (`authorUid, authorName, text, createdAt`) and `actions/{id}` (`text, done, createdByUid, createdAt`)
 

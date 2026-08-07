@@ -52,7 +52,7 @@ export const GRIEVANCE_SLA_DAYS = { Low: 30, Medium: 14, High: 7 }
 
 export const GOAL_STATUSES = ['Not Started', 'In Progress', 'At Risk', 'Completed']
 
-export const SKILL_CATEGORIES = ['Technical', 'Functional', 'Behavioural', 'Domain']
+export const SKILL_CATEGORIES = ['Professional Skills', 'Tools/Technologies', 'Domain Knowledge', 'Soft Skill']
 
 // 1–5 expertise scale used by the skill matrix.
 export const SKILL_LEVELS = [
@@ -62,6 +62,64 @@ export const SKILL_LEVELS = [
   { n: 4, label: 'Advanced' },
   { n: 5, label: 'Expert' },
 ]
+
+// Seeded topic list shown on the public Skill Survey (src/pages/SkillSurvey.jsx)
+// so every expected topic is captured consistently. Employees can also add
+// their own items beyond this list, per category.
+export const SKILL_CATALOG = {
+  'Professional Skills': [
+    'Backend Development',
+    'Front End Development',
+    'Mainframe Development',
+    'Techno-Functional Analysis',
+    'Business Analysis',
+    'Release Engineering',
+    'Ops Engineering',
+    'Functional Testing',
+    'Mainframe Testing',
+    'API Testing',
+    'Test Automation',
+    'Performance Testing',
+    'Scrum Master',
+    'Product Owner',
+  ],
+  'Tools/Technologies': [
+    'Ruby',
+    'BDD',
+    'Selenium',
+    'Java',
+    'Cypress',
+    'Octane',
+    'Mainframe',
+    'Javascript',
+    'Perfecto',
+    'Loadrunner',
+    'Neoload',
+    'Jmeter',
+    'Postman',
+    'SoapUI',
+    'WSO Greg',
+    'Jenkins',
+    'Groovy',
+    'CDD',
+    'Shell Scripting',
+    'Ansible',
+    'Terraform',
+    'Docker',
+  ],
+  'Domain Knowledge': ['Payments', 'Accounts', 'Corporate Banking', 'Private Banking', 'KYC', 'Party (KL)', 'KR', 'CRM'],
+  'Soft Skill': [
+    'Communication',
+    'Problem Solving',
+    'Teamwork',
+    'Time Management',
+    'Adaptability',
+    'Leadership',
+    'Technical Skills',
+    'Project Management',
+    'Customer Service',
+  ],
+}
 
 export const LEAVE_STATUSES = ['Pending', 'Approved', 'Rejected']
 
