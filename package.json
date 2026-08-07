@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "create-user": "node scripts/createUser.js",
-    "cleanup-test-data": "node scripts/cleanupTestData.js"
+    "cleanup-test-data": "node scripts/cleanupTestData.js",
+    "export-skill-template": "node scripts/exportSkillMatrixTemplate.js",
+    "import-skill-matrix": "node scripts/importSkillMatrix.js"
   },
   "dependencies": {
     "firebase": "^10.14.1",

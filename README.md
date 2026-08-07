@@ -202,6 +202,27 @@ Flow: enter passcode → pick your name from a dropdown → a confirmation scree
 
 Until `SKILL_SURVEY_PASSCODE` and `FIREBASE_SERVICE_ACCOUNT` are both set, the page shows a clear "Server not configured" message and nothing can be submitted.
 
+### Bulk skill-matrix import/export (offline, via spreadsheet)
+
+For collecting ratings outside the app entirely (e.g. handing a spreadsheet to team leads), two local scripts round-trip the `skills` collection through a CSV (opens directly in Excel). Both need the same service account key as above; run them from your machine, not deployed anywhere.
+
+```bash
+# 1. Export every employee (name + UUID) with every catalog topic as a column,
+#    pre-filled with any levels already recorded.
+node scripts/exportSkillMatrixTemplate.js /path/to/serviceAccountKey.json
+
+# 2. Have people fill in a level (1-5) per topic that applies to them, leaving
+#    the rest blank. Don't touch the Employee Name/UUID columns or the headers.
+
+# 3. Dry run first — validates the file and shows what would change, writes nothing:
+node scripts/importSkillMatrix.js /path/to/serviceAccountKey.json /path/to/filled.csv
+
+# 4. Then actually write it:
+node scripts/importSkillMatrix.js /path/to/serviceAccountKey.json /path/to/filled.csv --confirm
+```
+
+Import upserts by `(employeeId, skill name)` — the same rule the public Skill Survey uses — so re-running the same file updates existing levels rather than duplicating rows. Rows with an unrecognized UUID, or cells with a value outside 1–5, are skipped with a warning rather than failing the whole import.
+
 ## Data model (Firestore)
 
 - `users/{uid}` — `name, email, role ('admin'|'employee'), department, managerUid, managerName, dateOfJoining, birthday, status, leaveEntitlements, leaveOpeningTaken, leaveCarryOver`. `managerUid` links an employee to their manager's admin account: the admin dashboard and Resource Analysis show only that admin's reportees; employees with no manager sit in a claimable "Unassigned" list. (UI-level scoping — not enforced in rules.)
