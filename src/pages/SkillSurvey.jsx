@@ -39,6 +39,11 @@ export default function SkillSurvey() {
   const [passcodeError, setPasscodeError] = useState('')
   const [checking, setChecking] = useState(false)
   const [employees, setEmployees] = useState([])
+  // Seeded catalog by default (so the form isn't empty before the fetch
+  // resolves); replaced by the server's merged catalog — seed topics plus
+  // anything added via bulk import or the in-app Skill Matrix — once the
+  // passcode check succeeds. Re-fetched fresh every time the page loads.
+  const [catalog, setCatalog] = useState(SKILL_CATALOG)
   const [employeeId, setEmployeeId] = useState('')
   const [levels, setLevels] = useState({}) // `${category}::${name}` -> 1-5
   const [customEntries, setCustomEntries] = useState([]) // { id, category, name, level }
@@ -57,6 +62,7 @@ export default function SkillSurvey() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Could not verify passcode.')
       setEmployees(data.employees || [])
+      if (data.catalog) setCatalog(data.catalog)
       setStep('pick')
     } catch (err) {
       setPasscodeError(err.message)
@@ -98,7 +104,7 @@ export default function SkillSurvey() {
   async function handleSubmit() {
     const entries = []
     for (const category of SKILL_CATEGORIES) {
-      for (const name of SKILL_CATALOG[category]) {
+      for (const name of catalog[category] || []) {
         const lvl = levels[key(category, name)]
         if (lvl) entries.push({ category, name, level: lvl })
       }
@@ -230,7 +236,7 @@ export default function SkillSurvey() {
               <div key={category} className="card">
                 <h2 className="mb-3 font-semibold text-ink">{category}</h2>
                 <ul className="divide-y divide-white/5">
-                  {SKILL_CATALOG[category].map((name) => {
+                  {(catalog[category] || []).map((name) => {
                     const lvl = levels[key(category, name)] || 0
                     return (
                       <li key={name} className="flex flex-wrap items-center justify-between gap-2 py-2">

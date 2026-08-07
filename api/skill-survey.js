@@ -8,8 +8,13 @@ import admin from 'firebase-admin'
 // server-side. This keeps the real client-side `skills` rules exactly as
 // strict as they are for the logged-in app.
 //
-// GET  ?passcode=XXX        -> { employees: [{ id, name }] }   (name only —
-//                               no email/department is exposed publicly)
+// GET  ?passcode=XXX        -> { employees: [{ id, name }], catalog }
+//                               (name only — no email/department is exposed
+//                               publicly). `catalog` is the seeded topic list
+//                               per category, MERGED with every distinct
+//                               skill name already in Firestore — so topics
+//                               added via bulk import or the in-app Skill
+//                               Matrix always show up here too, every load.
 // POST { passcode, employeeId, entries }
 //                            -> upserts each entry into `skills`, keyed by
 //                               (employeeId, name) so a resubmission updates
@@ -19,11 +24,86 @@ import admin from 'firebase-admin'
 // bare framework 500 — every failure returns JSON with a message, and the
 // real error is also console.error'd so it shows up in Vercel's runtime logs.
 
-// Keep in sync with SKILL_CATEGORIES in src/lib/constants.js. Duplicated here
-// (rather than imported) to keep this serverless function self-contained.
+// Keep in sync with SKILL_CATEGORIES/SKILL_CATALOG in src/lib/constants.js.
+// Duplicated here (rather than imported) to keep this serverless function
+// self-contained.
 const ALLOWED_CATEGORIES = ['Professional Skills', 'Tools/Technologies', 'Domain Knowledge', 'Soft Skill']
 const MAX_ENTRIES = 150
 const MAX_NAME_LEN = 80
+
+const SEED_CATALOG = {
+  'Professional Skills': [
+    'Backend Development',
+    'Front End Development',
+    'Mainframe Development',
+    'Techno-Functional Analysis',
+    'Business Analysis',
+    'Release Engineering',
+    'Ops Engineering',
+    'Functional Testing',
+    'Mainframe Testing',
+    'API Testing',
+    'Test Automation',
+    'Performance Testing',
+    'Scrum Master',
+    'Product Owner',
+  ],
+  'Tools/Technologies': [
+    'Ruby',
+    'BDD',
+    'Selenium',
+    'Java',
+    'Cypress',
+    'Octane',
+    'Mainframe',
+    'Javascript',
+    'Perfecto',
+    'Loadrunner',
+    'Neoload',
+    'Jmeter',
+    'Postman',
+    'SoapUI',
+    'WSO Greg',
+    'Jenkins',
+    'Groovy',
+    'CDD',
+    'Shell Scripting',
+    'Ansible',
+    'Terraform',
+    'Docker',
+  ],
+  'Domain Knowledge': ['Payments', 'Accounts', 'Corporate Banking', 'Private Banking', 'KYC', 'Party (KL)', 'KR', 'CRM'],
+  'Soft Skill': [
+    'Communication',
+    'Problem Solving',
+    'Teamwork',
+    'Time Management',
+    'Adaptability',
+    'Leadership',
+    'Technical Skills',
+    'Project Management',
+    'Customer Service',
+  ],
+}
+
+// Seeded topics, plus every distinct skill name already recorded in
+// Firestore for that category that isn't already covered (case-insensitively)
+// by the seed list — so bulk-imported or employee-added topics always appear.
+function buildCatalog(skillDocs) {
+  const catalog = {}
+  for (const category of ALLOWED_CATEGORIES) {
+    const seeded = SEED_CATALOG[category] || []
+    const seededLower = new Set(seeded.map((n) => n.toLowerCase()))
+    const extra = new Set()
+    for (const doc of skillDocs) {
+      const s = doc.data()
+      const name = s?.name ? String(s.name).trim() : ''
+      if (s?.category === category && name && !seededLower.has(name.toLowerCase())) extra.add(name)
+    }
+    catalog[category] = [...seeded, ...[...extra].sort((a, b) => a.localeCompare(b))]
+  }
+  return catalog
+}
 
 function getAdmin() {
   if (!admin.apps.length) {
@@ -64,11 +144,15 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const passcode = getQueryParam(req, 'passcode')
       if (!passcodeOk(passcode)) return res.status(401).json({ error: 'Incorrect passcode.' })
-      const snap = await db.collection('users').where('role', '==', 'employee').get()
-      const employees = snap.docs
+      const [usersSnap, skillsSnap] = await Promise.all([
+        db.collection('users').where('role', '==', 'employee').get(),
+        db.collection('skills').get(),
+      ])
+      const employees = usersSnap.docs
         .map((d) => ({ id: d.id, name: d.data().name || 'Unnamed' }))
         .sort((a, b) => a.name.localeCompare(b.name))
-      return res.status(200).json({ employees })
+      const catalog = buildCatalog(skillsSnap.docs)
+      return res.status(200).json({ employees, catalog })
     }
 
     if (req.method === 'POST') {
