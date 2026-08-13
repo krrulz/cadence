@@ -179,49 +179,6 @@ service cloud.firestore {
       allow delete: if isAdmin() || isOwner(resource.data.employeeId);
     }
 
-    // --- timesheets -----------------------------------------------------
-    // timesheetPeriods/{employeeId_yearMonth} tracks the freeze state of one
-    // employee's calendar month. The employee may freeze their own open month
-    // (a one-way door for them); only admin may unfreeze it. timesheetEntries
-    // are the individual clarity/epic/day allocations; the employee may only
-    // create/edit/delete their own while that month's period isn't frozen —
-    // admin can always edit, which is how a manager makes corrections after a
-    // freeze without having to unlock it first.
-    match /timesheetPeriods/{id} {
-      allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
-      allow create: if isAdmin() || (
-        isOwner(request.resource.data.employeeId) && request.resource.data.status == 'frozen'
-      );
-      allow update: if isAdmin() || (
-        isOwner(resource.data.employeeId) &&
-        resource.data.status == 'open' &&
-        request.resource.data.status == 'frozen' &&
-        request.resource.data.employeeId == resource.data.employeeId
-      );
-      allow delete: if isAdmin();
-    }
-
-    match /timesheetEntries/{id} {
-      function periodFrozen(employeeId, yearMonth) {
-        let path = /databases/$(database)/documents/timesheetPeriods/$(employeeId + '_' + yearMonth);
-        return exists(path) && get(path).data.status == 'frozen';
-      }
-
-      allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
-      allow create: if isAdmin() || (
-        isOwner(request.resource.data.employeeId) &&
-        !periodFrozen(request.resource.data.employeeId, request.resource.data.yearMonth)
-      );
-      allow update: if isAdmin() || (
-        isOwner(resource.data.employeeId) &&
-        request.resource.data.employeeId == resource.data.employeeId &&
-        !periodFrozen(resource.data.employeeId, resource.data.yearMonth)
-      );
-      allow delete: if isAdmin() || (
-        isOwner(resource.data.employeeId) && !periodFrozen(resource.data.employeeId, resource.data.yearMonth)
-      );
-    }
-
     // --- bookmarks --------------------------------------------------------
     // Admin-curated useful links, visible to the whole team. Any signed-in user
     // may read; only admin may add, edit or remove.

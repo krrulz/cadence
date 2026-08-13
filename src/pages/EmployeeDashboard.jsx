@@ -11,7 +11,6 @@ import PerformanceTimeline from '../components/PerformanceTimeline.jsx'
 import OneOnOnes from '../components/OneOnOnes.jsx'
 import Goals from '../components/Goals.jsx'
 import ProjectUpdates from '../components/ProjectUpdates.jsx'
-import Timesheet from '../components/Timesheet.jsx'
 import SkillMatrix from '../components/SkillMatrix.jsx'
 import GrievanceList from '../components/GrievanceList.jsx'
 import GrievanceEditModal from '../components/GrievanceEditModal.jsx'
@@ -57,7 +56,6 @@ const SLUG_TO_VIEW = {
   'one-on-ones': 'oneOnOnes',
   grievances: 'grievances',
   leave: 'leave',
-  timesheet: 'timesheet',
 }
 const VIEW_TO_SLUG = Object.fromEntries(Object.entries(SLUG_TO_VIEW).map(([slug, v]) => [v, slug]))
 
@@ -291,10 +289,6 @@ export default function EmployeeDashboard() {
                 </div>
               </Section>
             </>
-          )}
-
-          {view === 'timesheet' && (
-            <Timesheet employeeId={user.uid} viewer={{ uid: user.uid, name: profile.name, role: 'employee' }} canUnlock={false} />
           )}
       </div>
 

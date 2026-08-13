@@ -17,7 +17,6 @@ import {
   AlertTriangle,
   Gauge,
   Sliders,
-  Clock,
   FileCheck2,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext.jsx'
@@ -29,7 +28,6 @@ const NAV = [
   { to: '/me', label: 'My Dashboard', icon: LayoutGrid, employeeOnly: true, end: true },
   { to: '/resource-analysis', label: 'Resource Analysis', icon: Gauge, adminOnly: true },
   { to: '/team-skills', label: 'Team Skills', icon: Sliders, adminOnly: true },
-  { to: '/timesheets', label: 'Timesheets', icon: Clock, adminOnly: true },
   { to: '/analytics', label: 'Analytics', icon: BarChart3, adminOnly: true },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays },
   { to: '/links', label: 'Links', icon: Link2 },
@@ -48,7 +46,6 @@ const EMPLOYEE_SECTIONS = [
   { to: '/me/one-on-ones', label: '1:1 Meetings', icon: Users },
   { to: '/me/grievances', label: 'Grievances', icon: AlertTriangle },
   { to: '/me/leave', label: 'Leave', icon: CalendarDays },
-  { to: '/me/timesheet', label: 'Timesheet', icon: Clock },
 ]
 
 export default function Layout({ children }) {
