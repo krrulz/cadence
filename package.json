@@ -11,7 +11,8 @@
     "create-user": "node scripts/createUser.js",
     "cleanup-test-data": "node scripts/cleanupTestData.js",
     "export-skill-template": "node scripts/exportSkillMatrixTemplate.js",
-    "import-skill-matrix": "node scripts/importSkillMatrix.js"
+    "import-skill-matrix": "node scripts/importSkillMatrix.js",
+    "skill-survey-status": "node scripts/skillSurveyStatus.js"
   },
   "dependencies": {
     "firebase": "^10.14.1",

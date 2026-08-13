@@ -223,6 +223,16 @@ node scripts/importSkillMatrix.js /path/to/serviceAccountKey.json /path/to/fille
 
 Import upserts by `(employeeId, skill name)` — the same rule the public Skill Survey uses — so re-running the same file updates existing levels rather than duplicating rows. Rows with an unrecognized UUID, or cells with a value outside 1–5, are skipped with a warning rather than failing the whole import.
 
+### Who has completed the Skill Survey?
+
+Every skill rating is tagged with where it came from (`updatedByRole`): `'self-survey'` for the public survey, `'bulk-import'` for the script above, `'admin'`/`'employee'` for edits made directly in the app. That makes "who's actually filled in the survey" a precise, unambiguous question — not just "who has any skills recorded at all" (which would also count people whose data only came from a bulk import or an admin entering it for them).
+
+```bash
+node scripts/skillSurveyStatus.js /path/to/serviceAccountKey.json
+```
+
+Read-only — prints two lists (completed, with skill count and last-submitted date; and not-yet-completed, with email so you can follow up) and writes a full CSV alongside them.
+
 ## Data model (Firestore)
 
 - `users/{uid}` — `name, email, role ('admin'|'employee'), department, managerUid, managerName, dateOfJoining, birthday, status, leaveEntitlements, leaveOpeningTaken, leaveCarryOver`. `managerUid` links an employee to their manager's admin account: the admin dashboard and Resource Analysis show only that admin's reportees; employees with no manager sit in a claimable "Unassigned" list. (UI-level scoping — not enforced in rules.)
