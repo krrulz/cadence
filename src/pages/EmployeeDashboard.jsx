@@ -10,6 +10,8 @@ import DataTable from '../components/DataTable.jsx'
 import PerformanceTimeline from '../components/PerformanceTimeline.jsx'
 import OneOnOnes from '../components/OneOnOnes.jsx'
 import Goals from '../components/Goals.jsx'
+import ProjectUpdates from '../components/ProjectUpdates.jsx'
+import Timesheet from '../components/Timesheet.jsx'
 import SkillMatrix from '../components/SkillMatrix.jsx'
 import GrievanceList from '../components/GrievanceList.jsx'
 import GrievanceEditModal from '../components/GrievanceEditModal.jsx'
@@ -47,6 +49,7 @@ function todayISO() {
 // shows the Overview (analytics + alerts).
 const SLUG_TO_VIEW = {
   performance: 'performance',
+  'project-updates': 'projectUpdates',
   goals: 'goals',
   skills: 'skills',
   recognitions: 'recognitions',
@@ -54,6 +57,7 @@ const SLUG_TO_VIEW = {
   'one-on-ones': 'oneOnOnes',
   grievances: 'grievances',
   leave: 'leave',
+  timesheet: 'timesheet',
 }
 const VIEW_TO_SLUG = Object.fromEntries(Object.entries(SLUG_TO_VIEW).map(([slug, v]) => [v, slug]))
 
@@ -175,6 +179,10 @@ export default function EmployeeDashboard() {
             </Section>
           )}
 
+          {view === 'projectUpdates' && (
+            <ProjectUpdates employeeId={user.uid} viewer={{ uid: user.uid, name: profile.name, role: 'employee' }} />
+          )}
+
           {view === 'goals' && (
             <Goals employeeId={user.uid} viewer={{ uid: user.uid, name: profile.name, role: 'employee' }} />
           )}
@@ -283,6 +291,10 @@ export default function EmployeeDashboard() {
                 </div>
               </Section>
             </>
+          )}
+
+          {view === 'timesheet' && (
+            <Timesheet employeeId={user.uid} viewer={{ uid: user.uid, name: profile.name, role: 'employee' }} canUnlock={false} />
           )}
       </div>
 

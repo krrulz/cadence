@@ -9,6 +9,7 @@ import Links from './pages/Links.jsx'
 import Analytics from './pages/Analytics.jsx'
 import ResourceAnalysis from './pages/ResourceAnalysis.jsx'
 import TeamSkills from './pages/TeamSkills.jsx'
+import Timesheets from './pages/Timesheets.jsx'
 import Prototype from './pages/Prototype.jsx'
 import SkillSurvey from './pages/SkillSurvey.jsx'
 
@@ -81,6 +82,14 @@ export default function App() {
         element={
           <ProtectedRoute requireAdmin>
             <TeamSkills />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/timesheets"
+        element={
+          <ProtectedRoute requireAdmin>
+            <Timesheets />
           </ProtectedRoute>
         }
       />

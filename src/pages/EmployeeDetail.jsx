@@ -13,6 +13,8 @@ import ComposeEmailModal from '../components/ComposeEmailModal.jsx'
 import EditLeaveModal from '../components/EditLeaveModal.jsx'
 import OneOnOnes from '../components/OneOnOnes.jsx'
 import Goals from '../components/Goals.jsx'
+import ProjectUpdates from '../components/ProjectUpdates.jsx'
+import Timesheet from '../components/Timesheet.jsx'
 import SkillMatrix from '../components/SkillMatrix.jsx'
 import GrievanceList from '../components/GrievanceList.jsx'
 import Avatar from '../components/Avatar.jsx'
@@ -41,7 +43,7 @@ import {
   leaveSummaryLine,
 } from '../lib/summaryLines.js'
 
-const TABS = ['Performance', 'Goals', 'Skills', 'Grievances', 'Recognitions', 'Feedback', 'Leave', '1:1s']
+const TABS = ['Performance', 'Project Updates', 'Goals', 'Skills', 'Grievances', 'Recognitions', 'Feedback', 'Leave', 'Timesheet', '1:1s']
 const TAB_LABELS = { Performance: 'Performance & Achievements', Skills: 'Skill Matrix', '1:1s': '1:1 Meetings' }
 
 export default function EmployeeDetail() {
@@ -228,11 +230,21 @@ export default function EmployeeDetail() {
             onEditBalance={() => setModal({ type: 'edit-leave' })}
           />
         )}
+        {tab === 'Project Updates' && (
+          <ProjectUpdates employeeId={uid} viewer={{ uid: adminProfile?.id, name: adminProfile?.name, role: 'admin' }} />
+        )}
         {tab === 'Goals' && (
           <Goals employeeId={uid} viewer={{ uid: adminProfile?.id, name: adminProfile?.name, role: 'admin' }} />
         )}
         {tab === 'Skills' && (
           <SkillMatrix employeeId={uid} viewer={{ uid: adminProfile?.id, name: adminProfile?.name, role: 'admin' }} />
+        )}
+        {tab === 'Timesheet' && (
+          <Timesheet
+            employeeId={uid}
+            viewer={{ uid: adminProfile?.id, name: adminProfile?.name, role: 'admin' }}
+            canUnlock
+          />
         )}
         {tab === '1:1s' && (
           <OneOnOnes
