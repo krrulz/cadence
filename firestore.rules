@@ -16,6 +16,24 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == employeeId;
     }
 
+    // A signed-in Firebase Auth account isn't necessarily a real employee —
+    // anyone can self-register against the public client config. This checks
+    // the caller both matches the target employeeId AND has an admin-created
+    // users/{uid} profile with role == 'employee', so an unprovisioned/rogue
+    // account can never satisfy an owner-gated rule no matter what uid it has.
+    function isProvisionedEmployee(employeeId) {
+      return isOwner(employeeId) &&
+        exists(/databases/$(database)/documents/users/$(employeeId)) &&
+        get(/databases/$(database)/documents/users/$(employeeId)).data.role == 'employee';
+    }
+
+    // True when `uid` has any admin-created users/{uid} profile (employee or
+    // admin) — used where a rule needs "a real provisioned account", not
+    // specifically an employee.
+    function isProvisionedUser(uid) {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(uid));
+    }
+
     // --- users --------------------------------------------------------
     // Any signed-in user may read the team directory (names/departments are
     // needed for peer recognition, 1:1s, and manager lookups). Sensitive
@@ -25,7 +43,10 @@ service cloud.firestore {
     // Employees may update their own doc but never their role, leave entitlements,
     // or the opening leave-taken figures (either would let them inflate their balance).
     match /users/{uid} {
-      allow read: if isSignedIn();
+      // Reading the directory requires already being a provisioned account
+      // yourself (employee or admin) — a freshly self-registered Firebase Auth
+      // account with no admin-created profile can't enumerate the team.
+      allow read: if isProvisionedUser(request.auth.uid);
       allow create: if isAdmin();
       allow update: if isAdmin() || (
         isOwner(uid) &&
@@ -53,19 +74,19 @@ service cloud.firestore {
     match /performance/{id} {
       allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
       allow create: if isAdmin() || (
-        isOwner(request.resource.data.employeeId) &&
+        isProvisionedEmployee(request.resource.data.employeeId) &&
         request.resource.data.entryType == 'Achievement'
       );
       // Employees may edit/delete their own achievements (never reviews, and
       // never reassigning or changing the entry type). Admin may edit/delete any.
       allow update: if isAdmin() || (
         resource.data.entryType == 'Achievement' &&
-        isOwner(resource.data.employeeId) &&
+        isProvisionedEmployee(resource.data.employeeId) &&
         request.resource.data.entryType == 'Achievement' &&
         request.resource.data.employeeId == resource.data.employeeId
       );
       allow delete: if isAdmin() || (
-        resource.data.entryType == 'Achievement' && isOwner(resource.data.employeeId)
+        resource.data.entryType == 'Achievement' && isProvisionedEmployee(resource.data.employeeId)
       );
     }
 
@@ -80,7 +101,9 @@ service cloud.firestore {
       );
       allow create: if isSignedIn() &&
         request.auth.uid == request.resource.data.givenByUid &&
-        request.resource.data.employeeId != request.resource.data.givenByUid;
+        request.resource.data.employeeId != request.resource.data.givenByUid &&
+        isProvisionedUser(request.resource.data.givenByUid) &&
+        isProvisionedUser(request.resource.data.employeeId);
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
@@ -98,16 +121,16 @@ service cloud.firestore {
     match /grievances/{id} {
       allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
       allow create: if isAdmin() || (
-        isOwner(request.resource.data.employeeId) &&
+        isProvisionedEmployee(request.resource.data.employeeId) &&
         request.resource.data.status == 'Open'
       );
       // Admin may update anything. The owner may edit only the category and
       // description of their own grievance (not status/priority/assignee/SLA).
       allow update: if isAdmin() || (
-        isOwner(resource.data.employeeId) &&
+        isProvisionedEmployee(resource.data.employeeId) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['category', 'description'])
       );
-      allow delete: if isAdmin() || isOwner(resource.data.employeeId);
+      allow delete: if isAdmin() || isProvisionedEmployee(resource.data.employeeId);
 
       // Comment thread on a grievance. The employee it concerns and the admin
       // may both read and post; each comment carries its author, and only the
@@ -131,7 +154,7 @@ service cloud.firestore {
     match /leaves/{id} {
       allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
       allow create: if isAdmin() || (
-        isOwner(request.resource.data.employeeId) &&
+        isProvisionedEmployee(request.resource.data.employeeId) &&
         request.resource.data.status == 'Pending'
       );
       allow update: if isAdmin();
@@ -144,12 +167,12 @@ service cloud.firestore {
     // employee's goals. The employee can't reassign a goal to someone else.
     match /goals/{id} {
       allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
-      allow create: if isAdmin() || isOwner(request.resource.data.employeeId);
+      allow create: if isAdmin() || isProvisionedEmployee(request.resource.data.employeeId);
       allow update: if isAdmin() || (
-        isOwner(resource.data.employeeId) &&
+        isProvisionedEmployee(resource.data.employeeId) &&
         request.resource.data.employeeId == resource.data.employeeId
       );
-      allow delete: if isAdmin() || isOwner(resource.data.employeeId);
+      allow delete: if isAdmin() || isProvisionedEmployee(resource.data.employeeId);
     }
 
     // --- skills (tech / functional / skill matrix) ------------------------
@@ -157,12 +180,12 @@ service cloud.firestore {
     // and remove an employee's skills. The employee can't reassign a skill.
     match /skills/{id} {
       allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
-      allow create: if isAdmin() || isOwner(request.resource.data.employeeId);
+      allow create: if isAdmin() || isProvisionedEmployee(request.resource.data.employeeId);
       allow update: if isAdmin() || (
-        isOwner(resource.data.employeeId) &&
+        isProvisionedEmployee(resource.data.employeeId) &&
         request.resource.data.employeeId == resource.data.employeeId
       );
-      allow delete: if isAdmin() || isOwner(resource.data.employeeId);
+      allow delete: if isAdmin() || isProvisionedEmployee(resource.data.employeeId);
     }
 
     // --- projectUpdates -----------------------------------------------------
@@ -171,12 +194,12 @@ service cloud.firestore {
     // edit and delete; the employee can't reassign one to someone else.
     match /projectUpdates/{id} {
       allow read: if isSignedIn() && (resource.data.employeeId == request.auth.uid || isAdmin());
-      allow create: if isAdmin() || isOwner(request.resource.data.employeeId);
+      allow create: if isAdmin() || isProvisionedEmployee(request.resource.data.employeeId);
       allow update: if isAdmin() || (
-        isOwner(resource.data.employeeId) &&
+        isProvisionedEmployee(resource.data.employeeId) &&
         request.resource.data.employeeId == resource.data.employeeId
       );
-      allow delete: if isAdmin() || isOwner(resource.data.employeeId);
+      allow delete: if isAdmin() || isProvisionedEmployee(resource.data.employeeId);
     }
 
     // --- bookmarks --------------------------------------------------------
@@ -215,11 +238,11 @@ service cloud.firestore {
       }
 
       allow read: if isParticipant();
-      allow create: if isAdmin() || isOwner(request.resource.data.employeeId);
+      allow create: if isAdmin() || isProvisionedEmployee(request.resource.data.employeeId);
       // Admin can edit anything. The employee participant may edit the shared
       // agenda but not reassign the 1:1 or rewrite its metadata.
       allow update: if isAdmin() || (
-        isOwner(resource.data.employeeId) &&
+        isProvisionedEmployee(resource.data.employeeId) &&
         request.resource.data.employeeId == resource.data.employeeId &&
         request.resource.data.date == resource.data.date &&
         request.resource.data.createdBy == resource.data.createdBy

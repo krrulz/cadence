@@ -51,8 +51,17 @@ export const BULK_UPLOAD_TEMPLATE =
 
 // Quote a value only when it could break CSV structure (comma, quote, newline).
 // Doubles embedded quotes per RFC 4180.
+//
+// Also guards against CSV/formula injection: a cell starting with =, +, -, @,
+// or a tab/CR is prefixed with a single quote per OWASP's recommendation, so
+// spreadsheet apps (Excel, Sheets, LibreOffice) treat it as literal text
+// instead of evaluating it as a formula when the export is opened. Without
+// this, any free-text field an employee controls (a recognition description,
+// a custom skill name, ...) could plant a payload that runs when an admin
+// later opens the exported CSV.
 function csvCell(value) {
-  const s = value == null ? '' : String(value)
+  let s = value == null ? '' : String(value)
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
   return s
 }
