@@ -42,6 +42,12 @@ export async function getAllRecords(collectionName) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
 }
 
+// A single doc at a known id (e.g. farewellSettings/config), or null if unset.
+export async function getDocById(collectionName, id) {
+  const snap = await getDoc(doc(db, collectionName, id))
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null
+}
+
 export async function getRecordsForEmployee(collectionName, employeeId) {
   const q = query(collection(db, collectionName), where('employeeId', '==', employeeId))
   const snap = await getDocs(q)

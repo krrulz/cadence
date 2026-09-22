@@ -1,0 +1,66 @@
+<svg width="1414" height="1000" viewBox="0 0 1414 1000" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="peaksSky" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#EFEAFB"/>
+    <stop offset="100%" stop-color="#FCFBFF"/>
+  </linearGradient>
+  <linearGradient id="peakFar" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#B7A6E8"/>
+    <stop offset="100%" stop-color="#9C86DD"/>
+  </linearGradient>
+  <linearGradient id="peakMid" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#7E63CE"/>
+    <stop offset="100%" stop-color="#6846C6"/>
+  </linearGradient>
+  <linearGradient id="peakNear" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#3860BE"/>
+    <stop offset="100%" stop-color="#25438C"/>
+  </linearGradient>
+  <radialGradient id="peaksSun" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#F5B841" stop-opacity="0.9"/>
+    <stop offset="100%" stop-color="#F5B841" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+
+<rect width="1414" height="1000" fill="url(#peaksSky)"/>
+<circle cx="1080" cy="260" r="200" fill="url(#peaksSun)"/>
+<circle cx="1080" cy="260" r="46" fill="#FCEFD2"/>
+
+<!-- far low-poly range -->
+<g fill="url(#peakFar)" opacity="0.7">
+  <polygon points="-20,560 140,380 300,560"/>
+  <polygon points="260,560 430,320 610,560"/>
+  <polygon points="560,560 720,400 880,560"/>
+  <polygon points="840,560 1010,360 1190,560"/>
+  <polygon points="1140,560 1300,410 1434,560"/>
+</g>
+
+<!-- mid range -->
+<g fill="url(#peakMid)" opacity="0.9">
+  <polygon points="-20,700 180,460 380,700"/>
+  <polygon points="320,700 560,420 800,700"/>
+  <polygon points="700,700 940,480 1180,700"/>
+  <polygon points="1080,700 1280,470 1434,700"/>
+</g>
+<!-- snow caps on mid range -->
+<g fill="#FFFFFF" opacity="0.85">
+  <polygon points="140,530 180,460 220,530 195,515 165,522"/>
+  <polygon points="500,480 560,420 615,480 585,462 545,470"/>
+  <polygon points="880,540 940,480 995,540 965,522 920,530"/>
+  <polygon points="1225,535 1280,470 1330,535 1300,516 1260,524"/>
+</g>
+
+<!-- near foreground range, darkest -->
+<g fill="url(#peakNear)">
+  <polygon points="-20,900 260,620 560,900"/>
+  <polygon points="440,900 760,660 1080,900"/>
+  <polygon points="920,900 1180,680 1434,900"/>
+</g>
+
+<!-- foreground ground plane, deep near-black-blue so text stays legible in front -->
+<rect x="0" y="880" width="1414" height="120" fill="#0C0814" opacity="0.08"/>
+
+<!-- a small winding path/trail climbing toward the peaks, a quiet "onward and upward" motif -->
+<path d="M 100 990 C 260 940, 320 900, 420 860 S 620 760, 707 640"
+      fill="none" stroke="#F5B841" stroke-width="3" stroke-dasharray="1 16" stroke-linecap="round" opacity="0.8"/>
+</svg>

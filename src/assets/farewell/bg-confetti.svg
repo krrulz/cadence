@@ -1,0 +1,62 @@
+<svg width="1414" height="1000" viewBox="0 0 1414 1000" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="confBase" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#FAF8FF"/>
+    <stop offset="100%" stop-color="#F1ECFC"/>
+  </linearGradient>
+  <radialGradient id="confGlow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#6846C6" stop-opacity="0.10"/>
+    <stop offset="100%" stop-color="#6846C6" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+
+<rect width="1414" height="1000" fill="url(#confBase)"/>
+<circle cx="707" cy="500" r="620" fill="url(#confGlow)"/>
+
+<!-- confetti field: circles, squares, triangles and ribbon-dashes in the Expleo palette + celebratory gold -->
+<g>
+  <circle cx="60" cy="70" r="9" fill="#6846C6"/>
+  <circle cx="140" cy="150" r="6" fill="#F5B841"/>
+  <rect x="220" y="50" width="14" height="14" fill="#3860BE" transform="rotate(20 227 57)"/>
+  <circle cx="330" cy="110" r="7" fill="#6846C6" opacity="0.7"/>
+  <polygon points="410,60 424,88 396,88" fill="#F5B841"/>
+  <rect x="480" y="90" width="12" height="12" fill="#6846C6" transform="rotate(-15 486 96)"/>
+  <circle cx="580" cy="55" r="8" fill="#3860BE"/>
+  <polygon points="660,95 674,123 646,123" fill="#6846C6" opacity="0.8"/>
+  <circle cx="750" cy="130" r="6" fill="#F5B841"/>
+  <rect x="820" y="60" width="14" height="14" fill="#3860BE" transform="rotate(35 827 67)"/>
+  <circle cx="910" cy="100" r="9" fill="#6846C6" opacity="0.7"/>
+  <polygon points="990,55 1004,83 976,83" fill="#3860BE"/>
+  <circle cx="1080" cy="140" r="7" fill="#F5B841"/>
+  <rect x="1150" y="70" width="12" height="12" fill="#6846C6" transform="rotate(-25 1156 76)"/>
+  <circle cx="1240" cy="60" r="8" fill="#3860BE"/>
+  <polygon points="1320,100 1334,128 1306,128" fill="#6846C6" opacity="0.75"/>
+  <circle cx="1380" cy="150" r="6" fill="#F5B841"/>
+
+  <circle cx="40" cy="900" r="8" fill="#3860BE"/>
+  <rect x="120" y="920" width="13" height="13" fill="#6846C6" transform="rotate(18 126 926)"/>
+  <circle cx="210" cy="960" r="6" fill="#F5B841"/>
+  <polygon points="300,900 314,928 286,928" fill="#6846C6" opacity="0.7"/>
+  <circle cx="390" cy="940" r="9" fill="#3860BE"/>
+  <rect x="470" y="910" width="12" height="12" fill="#F5B841" transform="rotate(-20 476 916)"/>
+  <circle cx="560" cy="960" r="7" fill="#6846C6"/>
+  <polygon points="650,905 664,933 636,933" fill="#3860BE" opacity="0.8"/>
+  <circle cx="740" cy="935" r="6" fill="#F5B841"/>
+  <rect x="820" y="955" width="14" height="14" fill="#6846C6" transform="rotate(30 827 962)"/>
+  <circle cx="910" cy="905" r="8" fill="#3860BE"/>
+  <polygon points="990,945 1004,973 976,973" fill="#6846C6" opacity="0.7"/>
+  <circle cx="1080" cy="915" r="7" fill="#F5B841"/>
+  <rect x="1160" y="945" width="12" height="12" fill="#3860BE" transform="rotate(-30 1166 951)"/>
+  <circle cx="1250" cy="960" r="9" fill="#6846C6"/>
+  <circle cx="1340" cy="915" r="6" fill="#F5B841"/>
+
+  <circle cx="30" cy="450" r="6" fill="#6846C6" opacity="0.5"/>
+  <circle cx="1390" cy="480" r="6" fill="#3860BE" opacity="0.5"/>
+  <rect x="15" y="600" width="10" height="10" fill="#F5B841" opacity="0.6" transform="rotate(20 20 605)"/>
+  <rect x="1385" y="330" width="10" height="10" fill="#6846C6" opacity="0.5" transform="rotate(-20 1390 335)"/>
+</g>
+
+<!-- fine confetti streamers arcing across the top corners -->
+<path d="M -30 200 C 160 120, 260 260, 460 160" fill="none" stroke="#6846C6" stroke-width="2" stroke-dasharray="1 14" stroke-linecap="round" opacity="0.5"/>
+<path d="M 1444 800 C 1260 880, 1160 740, 960 840" fill="none" stroke="#3860BE" stroke-width="2" stroke-dasharray="1 14" stroke-linecap="round" opacity="0.5"/>
+</svg>

@@ -202,6 +202,21 @@ service cloud.firestore {
       allow delete: if isAdmin() || isProvisionedEmployee(resource.data.employeeId);
     }
 
+    // --- farewell wall ------------------------------------------------------
+    // A one-off send-off activity: colleagues (who may not have a Cadence
+    // login at all) submit a wish + background vote through the public,
+    // no-login /farewell page. That page never talks to Firestore directly —
+    // it goes through api/farewell.js (Admin SDK, passcode-gated), the exact
+    // same pattern as the public Skill Survey, so a submitter can never read
+    // anyone else's wish. These rules only cover the admin-facing side:
+    // reviewing submissions and toggling the activity open/closed.
+    match /farewellSettings/{id} {
+      allow read, write: if isAdmin();
+    }
+    match /farewellWishes/{id} {
+      allow read, write: if isAdmin();
+    }
+
     // --- bookmarks --------------------------------------------------------
     // Admin-curated useful links, visible to the whole team. Any signed-in user
     // may read; only admin may add, edit or remove.

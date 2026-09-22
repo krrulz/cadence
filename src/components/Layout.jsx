@@ -18,6 +18,7 @@ import {
   Gauge,
   Sliders,
   FileCheck2,
+  PartyPopper,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import ChangePasswordModal from './ChangePasswordModal.jsx'
@@ -29,6 +30,7 @@ const NAV = [
   { to: '/resource-analysis', label: 'Resource Analysis', icon: Gauge, adminOnly: true },
   { to: '/team-skills', label: 'Team Skills', icon: Sliders, adminOnly: true },
   { to: '/analytics', label: 'Analytics', icon: BarChart3, adminOnly: true },
+  { to: '/farewell-admin', label: 'Send-off Wall', icon: PartyPopper, adminOnly: true },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays },
   { to: '/links', label: 'Links', icon: Link2 },
 ]

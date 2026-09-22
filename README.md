@@ -233,6 +233,22 @@ node scripts/skillSurveyStatus.js /path/to/serviceAccountKey.json
 
 Read-only — prints two lists (completed, with skill count and last-submitted date; and not-yet-completed, with email so you can follow up) and writes a full CSV alongside them.
 
+## 10. Send-off Wall (public, no login required)
+
+`/farewell` is a **public page** for a one-off "collect wishes for a departing teammate" activity — no Cadence account needed to contribute. Each visitor writes a short wish (max 20 words), picks one of five original artistic backgrounds to vote for, and can preview only their **own** card — never anyone else's. `/farewell-admin` (inside Cadence, behind your normal admin login — no separate passcode needed there) lets you open/close the activity, see live vote tallies, hide or delete a submission, preview the collage at any time, and download a print-ready A4 landscape PNG (300 DPI) with the top-voted background and every wish scattered artistically across it.
+
+**Security model**: same pattern as the Skill Survey — the public page never talks to Firestore directly. Every read/write goes through [`api/farewell.js`](./api/farewell.js) (Admin SDK, passcode-gated). A submitter can edit their own wish (a random token is kept in their browser's `localStorage` and doubles as that wish's document id) but has no way to read anyone else's — there is no client-side Firestore access to `farewellWishes` at all outside the admin pages, which are already gated by the existing `isAdmin()` rules.
+
+### Setup
+
+1. Add one more variable alongside the ones from §9 (same `FIREBASE_SERVICE_ACCOUNT`):
+   ```
+   FAREWELL_PASSCODE=<a code you choose>
+   ```
+2. Edit the honoree's name in [`api/farewell.js`](./api/farewell.js) (`HONOREE_NAME`) and [`src/pages/FarewellAdmin.jsx`](./src/pages/FarewellAdmin.jsx) (`HONOREE_NAME`) for each new occasion you run this for.
+3. Share `https://<your-vercel-domain>/farewell` with the team, along with the passcode, through whatever channel you'd use for something meant to stay a surprise.
+4. When you're ready to print, open `/farewell-admin`, pick (or keep the top-voted) background, hit **Regenerate arrangement** until you like the layout, then **Download print-quality PNG**.
+
 ## Data model (Firestore)
 
 - `users/{uid}` — `name, email, role ('admin'|'employee'), department, managerUid, managerName, dateOfJoining, birthday, status, leaveEntitlements, leaveOpeningTaken, leaveCarryOver`. `managerUid` links an employee to their manager's admin account: the admin dashboard and Resource Analysis show only that admin's reportees; employees with no manager sit in a claimable "Unassigned" list. (UI-level scoping — not enforced in rules.)
@@ -250,6 +266,8 @@ Read-only — prints two lists (completed, with skill count and last-submitted d
 - `bookmarks/{id}` — `title, url, category, description, createdAt` — admin-curated useful links shown to the whole team on the **Links** page
 - `oneOnOnes/{id}` — `employeeId, date, title, agenda, createdBy, createdAt`; with subcollections `notes/{id}` (`authorUid, authorName, text, createdAt`) and `actions/{id}` (`text, done, createdByUid, createdAt`)
 - `projectUpdates/{id}` — `employeeId, date, title, description, createdByUid, createdByRole, createdAt` — client-delivery milestones an employee logs about their own work. Collaborative like goals/skills. Each one submitted also folds into that employee's `goals` doc with `objective == 'Client Delivery'` as a new completed key result — auto-creating that goal the first time (see `src/lib/goalLinks.js`).
+- `farewellWishes/{token}` — `name, message, backgroundId, createdAt, updatedAt, hidden?` — one wish for the Send-off Wall (§10), keyed by the submitter's browser-generated token. Written only via `api/farewell.js` (Admin SDK); admin-only in Firestore rules.
+- `farewellSettings/config` — `isOpen, honoreeName, closedAt?, closedBy?, reopenedAt?` — the activity's open/closed state, toggled from `/farewell-admin`. Admin-only in Firestore rules; read by `api/farewell.js` via the Admin SDK for the public page.
 
 Leave balance per type = `leaveEntitlements[type] − leaveOpeningTaken[type] − sum(numDays of Approved leaves of that type)`. Computed client-side, not stored.
 
@@ -262,6 +280,7 @@ Leave balance per type = `leaveEntitlements[type] − leaveOpeningTaken[type] �
 - **Grievances** — employees raise (start `Open`); admin sets priority, assignee and status. A target resolution date is derived from priority and shown as an SLA badge (On Track / Due Soon / Overdue). Both sides can post to a per-grievance comment thread.
 - **Goals / OKRs** — collaborative objectives with key results and a progress bar, editable by both the employee and admin (My Dashboard / the Goals tab on the employee detail page).
 - **Project Status Updates** — employees log client-delivery milestones from My Dashboard / the Project Updates tab; each one is also added as a completed key result on their auto-created "Client Delivery" goal.
+- **Send-off Wall** (§10) — a public, no-login page where colleagues leave a short wish + background vote for a departing teammate, each able to preview only their own card. Admin opens/closes the activity and generates a printable A4 collage from `/farewell-admin`.
 - **1:1 meetings** — shared agenda, author-tagged notes and checkable action items per meeting.
 - **PTO calendar** — month grid of the team's approved (and optionally pending) leave, colour-coded per person.
 - **Analytics** (admin) — team-wide charts at `/analytics`: grievance-status donut, review-rating distribution, headcount by department, recognitions over the last 6 months, 1:1s completed vs open, goals by status, and leave taken vs entitlement. Dependency-free inline SVG/CSS charts.

@@ -12,7 +12,8 @@
     "cleanup-test-data": "node scripts/cleanupTestData.js",
     "export-skill-template": "node scripts/exportSkillMatrixTemplate.js",
     "import-skill-matrix": "node scripts/importSkillMatrix.js",
-    "skill-survey-status": "node scripts/skillSurveyStatus.js"
+    "skill-survey-status": "node scripts/skillSurveyStatus.js",
+    "seed-farewell-test-data": "node scripts/seedFarewellTestData.js"
   },
   "dependencies": {
     "firebase": "^10.14.1",

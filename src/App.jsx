@@ -11,6 +11,8 @@ import ResourceAnalysis from './pages/ResourceAnalysis.jsx'
 import TeamSkills from './pages/TeamSkills.jsx'
 import Prototype from './pages/Prototype.jsx'
 import SkillSurvey from './pages/SkillSurvey.jsx'
+import FarewellWall from './pages/FarewellWall.jsx'
+import FarewellAdmin from './pages/FarewellAdmin.jsx'
 
 export default function App() {
   return (
@@ -20,6 +22,8 @@ export default function App() {
       <Route path="/prototype" element={<Prototype />} />
       {/* Public, no-login skill survey for employees without a Cadence account yet. */}
       <Route path="/skills-survey" element={<SkillSurvey />} />
+      {/* Public, no-login send-off wall — no Cadence account required to contribute a wish. */}
+      <Route path="/farewell" element={<FarewellWall />} />
       <Route
         path="/"
         element={
@@ -81,6 +85,14 @@ export default function App() {
         element={
           <ProtectedRoute requireAdmin>
             <TeamSkills />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/farewell-admin"
+        element={
+          <ProtectedRoute requireAdmin>
+            <FarewellAdmin />
           </ProtectedRoute>
         }
       />
