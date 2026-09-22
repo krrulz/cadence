@@ -172,7 +172,9 @@ function wrapLinesClamped(ctx, text, maxWidth, maxLines) {
   return clamped
 }
 
-const HEADER_FRACTION = 0.13
+function clamp(n, lo, hi) {
+  return Math.max(lo, Math.min(hi, n))
+}
 
 async function renderCollage(canvas, { wishes, background, seed, width, height }) {
   const ctx = canvas.getContext('2d')
@@ -184,24 +186,47 @@ async function renderCollage(canvas, { wishes, background, seed, width, height }
   const bgImg = await loadImage(background.src)
   drawCover(ctx, bgImg, 0, 0, width, height)
 
-  const headerH = Math.round(height * HEADER_FRACTION)
   const titleColor = background.dark ? '#FFFFFF' : '#0C0814'
+  const titleText = `Wishing you all the best, ${HONOREE_NAME}!`
+  const subtitleText = 'From the whole team — we’ll miss you!'
+  const availTitleW = width * 0.88
+
+  // Title font scales off the canvas WIDTH (the tighter constraint in
+  // portrait, where the canvas is much narrower than it was in landscape)
+  // and wraps onto a second line — shrinking first — if the honoree's name
+  // makes the line too long to fit at a legible size.
+  let titleFont = clamp(Math.round(width * 0.052), 26, 92)
+  ctx.font = `700 ${titleFont}px 'Architects Daughter', cursive`
+  let titleLines = wrapLines(ctx, titleText, availTitleW)
+  while (titleLines.length > 2 && titleFont > 22) {
+    titleFont -= 2
+    ctx.font = `700 ${titleFont}px 'Architects Daughter', cursive`
+    titleLines = wrapLines(ctx, titleText, availTitleW)
+  }
+  const subtitleFont = clamp(Math.round(titleFont * 0.42), 14, 38)
+  const titleLineH = titleFont * 1.15
+  const topPad = titleFont * 0.5
+  const headerH = Math.round(topPad + titleLines.length * titleLineH + subtitleFont * 1.9)
 
   // Soft scrim behind the header text so it reads on any background.
-  const scrim = ctx.createLinearGradient(0, 0, 0, headerH * 1.3)
+  const scrim = ctx.createLinearGradient(0, 0, 0, headerH * 1.15)
   scrim.addColorStop(0, background.dark ? 'rgba(12,8,20,0.55)' : 'rgba(255,255,255,0.65)')
   scrim.addColorStop(1, background.dark ? 'rgba(12,8,20,0)' : 'rgba(255,255,255,0)')
   ctx.fillStyle = scrim
-  ctx.fillRect(0, 0, width, headerH * 1.3)
+  ctx.fillRect(0, 0, width, headerH * 1.15)
 
   ctx.textAlign = 'center'
   ctx.textBaseline = 'alphabetic'
   ctx.fillStyle = titleColor
-  ctx.font = `700 ${Math.round(headerH * 0.4)}px 'Architects Daughter', cursive`
-  ctx.fillText(`Wishing you all the best, ${HONOREE_NAME}!`, width / 2, headerH * 0.62)
-  ctx.font = `400 ${Math.round(headerH * 0.18)}px 'Patrick Hand', cursive`
+  ctx.font = `700 ${titleFont}px 'Architects Daughter', cursive`
+  let ty = topPad + titleFont * 0.78
+  for (const line of titleLines) {
+    ctx.fillText(line, width / 2, ty)
+    ty += titleLineH
+  }
+  ctx.font = `400 ${subtitleFont}px 'Patrick Hand', cursive`
   ctx.globalAlpha = 0.85
-  ctx.fillText('From the whole team — we’ll miss you!', width / 2, headerH * 0.9)
+  ctx.fillText(subtitleText, width / 2, ty + subtitleFont * 0.3)
   ctx.globalAlpha = 1
 
   const layout = computeFarewellLayout(wishes, { width, height: height - headerH, seed })
@@ -330,7 +355,8 @@ export default function FarewellAdmin() {
   useEffect(() => {
     // On-screen preview at a modest resolution — full print resolution is
     // only rendered on demand into an off-screen canvas for download.
-    draw(canvasRef.current, 1200, Math.round(1200 / 1.4142))
+    // A4 portrait ratio (297/210 = height/width).
+    draw(canvasRef.current, 850, Math.round(850 * 1.4142))
   }, [draw])
 
   async function handleToggle() {
@@ -390,9 +416,9 @@ export default function FarewellAdmin() {
 
   async function handleDownload() {
     const canvas = printCanvasRef.current
-    // A4 landscape at 300 DPI: 297mm x 210mm.
-    const width = Math.round((297 / 25.4) * 300)
-    const height = Math.round((210 / 25.4) * 300)
+    // A4 portrait at 300 DPI: 210mm x 297mm.
+    const width = Math.round((210 / 25.4) * 300)
+    const height = Math.round((297 / 25.4) * 300)
     await draw(canvas, width, height)
     canvas.toBlob((blob) => {
       if (!blob) return
@@ -479,15 +505,15 @@ export default function FarewellAdmin() {
           <p className="text-sm text-ink-faint">No submissions yet — the preview will appear once people start adding wishes.</p>
         ) : (
           <>
-            <div className="overflow-hidden rounded-xl border border-surface-border">
-              <canvas ref={canvasRef} className="w-full" style={{ aspectRatio: '1.4142' }} />
+            <div className="mx-auto max-w-md overflow-hidden rounded-xl border border-surface-border">
+              <canvas ref={canvasRef} className="w-full" style={{ aspectRatio: '210 / 297' }} />
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" onClick={() => setSeed((s) => s + 1)} disabled={rendering} className="btn-secondary text-sm">
                 {rendering ? 'Rendering…' : 'Regenerate arrangement'}
               </button>
               <button type="button" onClick={handleDownload} className="btn-primary text-sm">
-                Download print-quality PNG (A4 landscape, 300 DPI)
+                Download print-quality PNG (A4 portrait, 300 DPI)
               </button>
             </div>
           </>
