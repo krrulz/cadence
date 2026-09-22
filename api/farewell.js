@@ -27,7 +27,7 @@ import admin from 'firebase-admin'
 // FAREWELL_BACKGROUNDS list in src/pages/FarewellWall.jsx. Duplicated here
 // (rather than imported) to keep this serverless function self-contained,
 // matching api/skill-survey.js's convention.
-const BACKGROUND_IDS = ['aurora', 'confetti', 'constellation', 'peaks', 'botanical']
+const BACKGROUND_IDS = ['aurora', 'confetti', 'constellation', 'journey', 'botanical']
 const HONOREE_NAME = 'Ragunathan Palanisamy'
 const WORD_LIMIT = 20
 const MAX_NAME_LEN = 60

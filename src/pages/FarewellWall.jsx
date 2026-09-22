@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import bgAurora from '../assets/farewell/bg-aurora.svg'
 import bgConfetti from '../assets/farewell/bg-confetti.svg'
 import bgConstellation from '../assets/farewell/bg-constellation.svg'
-import bgPeaks from '../assets/farewell/bg-peaks.svg'
+import bgJourney from '../assets/farewell/bg-journey.svg'
 import bgBotanical from '../assets/farewell/bg-botanical.svg'
 import { wordCount, truncateToWords, WORD_LIMIT } from '../lib/farewellLayout.js'
 
@@ -16,7 +16,7 @@ export const FAREWELL_BACKGROUNDS = [
   { id: 'aurora', label: 'Aurora Flow', src: bgAurora, dark: true },
   { id: 'confetti', label: 'Confetti Celebration', src: bgConfetti, dark: false },
   { id: 'constellation', label: 'Constellation Journey', src: bgConstellation, dark: true },
-  { id: 'peaks', label: 'Geometric Peaks', src: bgPeaks, dark: false },
+  { id: 'journey', label: 'Paper Plane Journey', src: bgJourney, dark: false },
   { id: 'botanical', label: 'Botanical Wreath', src: bgBotanical, dark: false },
 ]
 

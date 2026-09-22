@@ -22,7 +22,7 @@ import admin from 'firebase-admin'
 import readline from 'node:readline'
 import { readFileSync, existsSync } from 'node:fs'
 
-const BACKGROUND_IDS = ['aurora', 'confetti', 'constellation', 'peaks', 'botanical']
+const BACKGROUND_IDS = ['aurora', 'confetti', 'constellation', 'journey', 'botanical']
 
 const FIRST_NAMES = [
   'Priya', 'Arjun', 'Sofia', 'Wei', 'Liam', 'Fatima', 'Carlos', 'Emma', 'Raj', 'Nina',
