@@ -235,7 +235,7 @@ Read-only — prints two lists (completed, with skill count and last-submitted d
 
 ## 10. Send-off Wall (public, no login required)
 
-`/farewell` is a **public page** for a one-off "collect wishes for a departing teammate" activity — no Cadence account needed to contribute. Each visitor writes a short wish (max 20 words), picks one of five original artistic backgrounds to vote for, and can preview only their **own** card — never anyone else's. `/farewell-admin` (inside Cadence, behind your normal admin login — no separate passcode needed there) lets you open/close the activity, see live vote tallies, hide or delete a submission, preview the collage at any time, and download a print-ready A4 landscape PNG (300 DPI) with the top-voted background and every wish scattered artistically across it.
+`/farewell` is a **public page** for a one-off "collect wishes for a departing teammate" activity — no Cadence account needed to contribute. Each visitor writes a short wish (max 20 words), picks one of five original artistic backgrounds to vote for, and can preview only their **own** card — never anyone else's. `/farewell-admin` (inside Cadence, behind your normal admin login — no separate passcode needed there) lets you open/close the activity, see live vote tallies, hide or delete a submission, preview the collage at any time, and download a print-ready A4 portrait PNG (300 DPI) with the top-voted background and every wish scattered artistically across it.
 
 **Security model**: same pattern as the Skill Survey — the public page never talks to Firestore directly. Every read/write goes through [`api/farewell.js`](./api/farewell.js) (Admin SDK, passcode-gated). A submitter can edit their own wish (a random token is kept in their browser's `localStorage` and doubles as that wish's document id) but has no way to read anyone else's — there is no client-side Firestore access to `farewellWishes` at all outside the admin pages, which are already gated by the existing `isAdmin()` rules.
 
@@ -248,6 +248,16 @@ Read-only — prints two lists (completed, with skill count and last-submitted d
 2. Edit the honoree's name in [`api/farewell.js`](./api/farewell.js) (`HONOREE_NAME`) and [`src/pages/FarewellAdmin.jsx`](./src/pages/FarewellAdmin.jsx) (`HONOREE_NAME`) for each new occasion you run this for.
 3. Share `https://<your-vercel-domain>/farewell` with the team, along with the passcode, through whatever channel you'd use for something meant to stay a surprise.
 4. When you're ready to print, open `/farewell-admin`, pick (or keep the top-voted) background, hit **Regenerate arrangement** until you like the layout, then **Download print-quality PNG**.
+
+## 11. Deck Data Prep — Tribe Customers SteerCo deck (admin only, Phase 1)
+
+`/deck-data-prep` prepares the data behind the monthly Tribe Customers SteerCo PowerPoint: upload the deck each resource fills in that month, and it's extracted with AI into per-resource milestone entries for you to review and correct before saving as real Project Status Updates (`projectUpdates` — same collection and Client Delivery goal linking as the self-service feature on My Dashboard). The Action Plan list is maintained by hand in the same tab, since it isn't derived from the PPT.
+
+**This is Phase 1** — upload → extract → review → save. Actually *generating* the branded SteerCo PPTX (matching the exact BNPPF/Expleo template fonts/colors/layout) is a follow-up phase, not built yet.
+
+**Setup**: reuses the same `CF_ACCOUNT_ID` / `CF_API_TOKEN` / `FIREBASE_PROJECT_ID` / `FIREBASE_SERVICE_ACCOUNT` env vars as §6 and §7 — nothing new to configure if those are already set.
+
+**How extraction works**: the uploaded `.pptx` is parsed client-side (it's just a zip of XML — [`src/lib/pptxText.js`](./src/lib/pptxText.js) pulls the visible text per slide, no upload of the raw file to any server). That text goes to [`api/extract-project-updates.js`](./api/extract-project-updates.js) (Workers AI, admin-only), which returns each resource's name and a set of `{label, description}` milestone entries. [`src/lib/nameMatch.js`](./src/lib/nameMatch.js) pre-matches each extracted name against the employee roster so the review table starts with a best guess — every match, and every extracted line, stays editable before you save anything.
 
 ## Data model (Firestore)
 
@@ -265,9 +275,10 @@ Read-only — prints two lists (completed, with skill count and last-submitted d
 - `skills/{id}` — `employeeId, name, category ('Professional Skills'|'Tools/Technologies'|'Domain Knowledge'|'Soft Skill'), level (1-5), updatedByUid, updatedByRole, createdAt, updatedAt` — the **Skill Matrix**; collaborative (employee + admin can add/rate/remove), interactive 1–5 expertise pips grouped by category. Shown as a tab on the employee detail page, in the employee's own workspace, in the admin **Team Skills** finder/gap-analysis page, and populated by the public **Skill Survey** (`updatedByRole: 'self-survey'`; see §9).
 - `bookmarks/{id}` — `title, url, category, description, createdAt` — admin-curated useful links shown to the whole team on the **Links** page
 - `oneOnOnes/{id}` — `employeeId, date, title, agenda, createdBy, createdAt`; with subcollections `notes/{id}` (`authorUid, authorName, text, createdAt`) and `actions/{id}` (`text, done, createdByUid, createdAt`)
-- `projectUpdates/{id}` — `employeeId, date, title, description, createdByUid, createdByRole, createdAt` — client-delivery milestones an employee logs about their own work. Collaborative like goals/skills. Each one submitted also folds into that employee's `goals` doc with `objective == 'Client Delivery'` as a new completed key result — auto-creating that goal the first time (see `src/lib/goalLinks.js`).
+- `projectUpdates/{id}` — `employeeId, date, title, description, createdByUid, createdByRole, createdAt`, plus optional `squadOwnerName, month, importBatchId` on entries bulk-imported via `/deck-data-prep` (§11) — client-delivery milestones an employee logs about their own work, or admin imports on their behalf from the monthly resource-update PPT. Collaborative like goals/skills. Each one submitted also folds into that employee's `goals` doc with `objective == 'Client Delivery'` as a new completed key result — auto-creating that goal the first time (see `src/lib/goalLinks.js`).
 - `farewellWishes/{token}` — `name, message, backgroundId, createdAt, updatedAt, hidden?` — one wish for the Send-off Wall (§10), keyed by the submitter's browser-generated token. Written only via `api/farewell.js` (Admin SDK); admin-only in Firestore rules.
 - `farewellSettings/config` — `isOpen, honoreeName, closedAt?, closedBy?, reopenedAt?` — the activity's open/closed state, toggled from `/farewell-admin`. Admin-only in Firestore rules; read by `api/farewell.js` via the Admin SDK for the public page.
+- `actionPlanItems/{id}` — `description, focusArea, resolution, owner, deadlineStatus, createdAt` — the monthly SteerCo deck's Action Plan list (§11), maintained by hand from `/deck-data-prep`. Admin-only in Firestore rules.
 
 Leave balance per type = `leaveEntitlements[type] − leaveOpeningTaken[type] − sum(numDays of Approved leaves of that type)`. Computed client-side, not stored.
 

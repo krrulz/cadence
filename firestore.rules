@@ -202,6 +202,14 @@ service cloud.firestore {
       allow delete: if isAdmin() || isProvisionedEmployee(resource.data.employeeId);
     }
 
+    // --- actionPlanItems ----------------------------------------------------
+    // Admin-managed list feeding the monthly SteerCo deck's Action Plan
+    // slide. Not tied to an individual employee, so admin-only (no
+    // employee-facing view of this data).
+    match /actionPlanItems/{id} {
+      allow read, write: if isAdmin();
+    }
+
     // --- farewell wall ------------------------------------------------------
     // A one-off send-off activity: colleagues (who may not have a Cadence
     // login at all) submit a wish + background vote through the public,

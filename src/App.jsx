@@ -13,6 +13,7 @@ import Prototype from './pages/Prototype.jsx'
 import SkillSurvey from './pages/SkillSurvey.jsx'
 import FarewellWall from './pages/FarewellWall.jsx'
 import FarewellAdmin from './pages/FarewellAdmin.jsx'
+import DeckDataPrep from './pages/DeckDataPrep.jsx'
 
 export default function App() {
   return (
@@ -93,6 +94,14 @@ export default function App() {
         element={
           <ProtectedRoute requireAdmin>
             <FarewellAdmin />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/deck-data-prep"
+        element={
+          <ProtectedRoute requireAdmin>
+            <DeckDataPrep />
           </ProtectedRoute>
         }
       />
