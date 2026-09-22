@@ -261,6 +261,8 @@ export default function FarewellAdmin() {
   const [overrideBackground, setOverrideBackground] = useState('')
   const [toggling, setToggling] = useState(false)
   const [error, setError] = useState('')
+  const [selectedIds, setSelectedIds] = useState(() => new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   const canvasRef = useRef(null)
   const printCanvasRef = useRef(null)
 
@@ -278,6 +280,16 @@ export default function FarewellAdmin() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  // Drop any selected id that no longer exists (e.g. deleted individually
+  // via the row's own Delete button) so the bulk-delete count stays honest.
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const validIds = new Set(wishes.map((w) => w.id))
+      const next = new Set([...prev].filter((id) => validIds.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [wishes])
 
   const isOpen = settings?.isOpen !== false
   const visibleWishes = useMemo(() => wishes.filter((w) => !w.hidden), [wishes])
@@ -347,6 +359,33 @@ export default function FarewellAdmin() {
     if (!window.confirm(`Delete ${wish.name}’s wish? This can’t be undone.`)) return
     await deleteRecord('farewellWishes', wish.id)
     loadData()
+  }
+
+  function toggleSelect(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => (prev.size === wishes.length ? new Set() : new Set(wishes.map((w) => w.id))))
+  }
+
+  async function handleBulkDelete() {
+    const count = selectedIds.size
+    if (count === 0) return
+    if (!window.confirm(`Delete ${count} selected wish${count === 1 ? '' : 'es'}? This can’t be undone.`)) return
+    setBulkDeleting(true)
+    try {
+      await Promise.all([...selectedIds].map((id) => deleteRecord('farewellWishes', id)))
+      setSelectedIds(new Set())
+      await loadData()
+    } finally {
+      setBulkDeleting(false)
+    }
   }
 
   async function handleDownload() {
@@ -460,26 +499,59 @@ export default function FarewellAdmin() {
         {wishes.length === 0 ? (
           <p className="text-sm text-ink-faint">No submissions yet.</p>
         ) : (
-          <div className="max-h-[420px] space-y-1.5 overflow-y-auto pr-1">
-            {wishes.map((w) => (
-              <div key={w.id} className={`flex items-center gap-3 rounded-lg border border-white/5 p-2 ${w.hidden ? 'opacity-50' : ''}`}>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-ink">
-                    {w.name} <span className="text-xs font-normal text-ink-faint">· {wordCount(w.message)} words · {FAREWELL_BACKGROUNDS.find((b) => b.id === w.backgroundId)?.label || w.backgroundId}</span>
-                  </p>
-                  <p className="truncate text-xs text-ink-muted">{w.message}</p>
+          <>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <label className="flex items-center gap-2 text-xs text-ink-muted">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-mint"
+                  checked={selectedIds.size > 0 && selectedIds.size === wishes.length}
+                  ref={(el) => {
+                    if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < wishes.length
+                  }}
+                  onChange={toggleSelectAll}
+                />
+                {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select all'}
+              </label>
+              {selectedIds.size > 0 && (
+                <button
+                  type="button"
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  className="rounded-md border border-rose-500/40 px-2.5 py-1 text-xs font-medium text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
+                >
+                  {bulkDeleting ? 'Deleting…' : `Delete ${selectedIds.size} selected`}
+                </button>
+              )}
+            </div>
+            <div className="max-h-[420px] space-y-1.5 overflow-y-auto pr-1">
+              {wishes.map((w) => (
+                <div key={w.id} className={`flex items-center gap-3 rounded-lg border border-white/5 p-2 ${w.hidden ? 'opacity-50' : ''}`}>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 shrink-0 accent-mint"
+                    checked={selectedIds.has(w.id)}
+                    onChange={() => toggleSelect(w.id)}
+                    aria-label={`Select ${w.name}'s wish`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-ink">
+                      {w.name} <span className="text-xs font-normal text-ink-faint">· {wordCount(w.message)} words · {FAREWELL_BACKGROUNDS.find((b) => b.id === w.backgroundId)?.label || w.backgroundId}</span>
+                    </p>
+                    <p className="truncate text-xs text-ink-muted">{w.message}</p>
+                  </div>
+                  <div className="flex shrink-0 gap-3 text-xs">
+                    <button type="button" onClick={() => handleToggleHide(w)} className="text-ink-muted hover:text-mint hover:underline">
+                      {w.hidden ? 'Unhide' : 'Hide'}
+                    </button>
+                    <button type="button" onClick={() => handleDelete(w)} className="text-ink-faint hover:text-rose-400 hover:underline">
+                      Delete
+                    </button>
+                  </div>
                 </div>
-                <div className="flex shrink-0 gap-3 text-xs">
-                  <button type="button" onClick={() => handleToggleHide(w)} className="text-ink-muted hover:text-mint hover:underline">
-                    {w.hidden ? 'Unhide' : 'Hide'}
-                  </button>
-                  <button type="button" onClick={() => handleDelete(w)} className="text-ink-faint hover:text-rose-400 hover:underline">
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
       </Section>
     </Layout>
