@@ -93,7 +93,10 @@ function UploadExtractSection() {
         body: JSON.stringify({ slidesText: slides.map((s) => s.text) }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`)
+      if (!res.ok) {
+        const detail = data.rawPreview ? `\n\nWhat the AI actually returned (for diagnosis):\n${data.rawPreview}` : ''
+        throw new Error((data.error || `Request failed (${res.status})`) + detail)
+      }
 
       const built = data.resources.map((r, i) => {
         const match = bestEmployeeMatch(r.name, employees)
@@ -228,7 +231,7 @@ function UploadExtractSection() {
       </div>
 
       {extracting && <p className="mt-3 text-sm text-ink-muted">Extracting and matching resources…</p>}
-      {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
+      {error && <p className="mt-3 whitespace-pre-wrap text-sm text-rose-400">{error}</p>}
       {savedMessage && <p className="mt-3 text-sm text-mint">✓ {savedMessage}</p>}
 
       {groups && (

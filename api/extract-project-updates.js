@@ -91,28 +91,118 @@ export default async function handler(req, res) {
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: buildUserPrompt(slidesText) },
         ],
-        max_tokens: 3000,
+        max_tokens: 4096,
       }),
     })
 
     const payload = await cfRes.json()
     if (!cfRes.ok || payload.success === false) {
       const detail = payload.errors?.map((e) => e.message).join('; ') || `HTTP ${cfRes.status}`
+      console.error('[extract-project-updates] Workers AI call failed:', detail)
       return res.status(502).json({ error: `Workers AI request failed: ${detail}` })
     }
 
+    // Always log the raw response server-side (visible in Vercel's runtime
+    // logs) — the single most useful thing for diagnosing a bad extraction,
+    // whether it parses or not.
+    const rawText = typeof payload.result?.response === 'string' ? payload.result.response : JSON.stringify(payload.result)
+    console.log('[extract-project-updates] raw Workers AI response:', rawText?.slice(0, 4000))
+
     const resources = extractResources(payload.result)
-    if (!resources) return res.status(502).json({ error: 'Workers AI returned an unreadable response. Try again.' })
+    if (!resources) {
+      return res.status(502).json({
+        error: 'Workers AI returned a response that could not be parsed into resources. Try again, or try a shorter upload.',
+        rawPreview: (rawText || '').slice(0, 500),
+      })
+    }
     return res.status(200).json({ resources })
   } catch (err) {
+    console.error('[extract-project-updates] unexpected error:', err)
     return res.status(502).json({ error: `Workers AI request failed: ${err.message}` })
   }
 }
 
+// Scan `text` starting at `startIdx` (which must be an opening brace or
+// bracket) and return the index just past its matching close, respecting
+// string literals/escapes — or -1 if the text ends before it closes (a
+// truncated response, the most common real failure with smaller models
+// asked for a long, multi-resource JSON payload).
+function findMatchingClose(text, startIdx) {
+  const open = text[startIdx]
+  const close = open === '{' ? '}' : ']'
+  let depth = 0
+  let inString = false
+  let escaped = false
+  for (let i = startIdx; i < text.length; i++) {
+    const ch = text[i]
+    if (inString) {
+      if (escaped) escaped = false
+      else if (ch === '\\') escaped = true
+      else if (ch === '"') inString = false
+      continue
+    }
+    if (ch === '"') inString = true
+    else if (ch === open) depth++
+    else if (ch === close) {
+      depth--
+      if (depth === 0) return i + 1
+    }
+  }
+  return -1
+}
+
+// Best-effort repair for a JSON object truncated mid-way (hit max_tokens):
+// trim back to the last fully-closed array/object element, then append
+// whatever closing brackets are needed to balance it. Recovers the
+// resources found before the cutoff instead of discarding the whole
+// response over its unfinished tail.
+function repairTruncatedJson(fragment) {
+  let inString = false
+  let escaped = false
+  let lastSafeEnd = -1
+  let closersAtLastSafeEnd = null
+  const stack = []
+  for (let i = 0; i < fragment.length; i++) {
+    const ch = fragment[i]
+    if (inString) {
+      if (escaped) escaped = false
+      else if (ch === '\\') escaped = true
+      else if (ch === '"') inString = false
+      continue
+    }
+    if (ch === '"') inString = true
+    else if (ch === '{' || ch === '[') stack.push(ch)
+    else if (ch === '}' || ch === ']') {
+      stack.pop()
+      // fragment starts at the outer `{`, so stack === ['{', '['] (length 2)
+      // right after we've just closed one complete element of the
+      // top-level "resources" array — the safest possible truncation point.
+      // Snapshot the stack *at this point* (not the final one) since that's
+      // what needs closing once we slice back to here.
+      if (stack.length === 2) {
+        lastSafeEnd = i + 1
+        closersAtLastSafeEnd = stack.slice()
+      }
+    }
+  }
+  if (lastSafeEnd === -1 || !closersAtLastSafeEnd) return null
+  const closers = closersAtLastSafeEnd
+    .slice()
+    .reverse()
+    .map((c) => (c === '{' ? '}' : ']'))
+    .join('')
+  try {
+    return JSON.parse(fragment.slice(0, lastSafeEnd) + closers)
+  } catch {
+    return null
+  }
+}
+
 // Workers AI's response shape varies (plain string vs. already-parsed object
-// vs. OpenAI-style choices array) and smaller models often wrap JSON in
-// prose despite instructions — same defensive parsing as compose-email.js's
-// extractEmail, but validating/cleaning the resources array shape.
+// vs. OpenAI-style choices array), smaller models often wrap JSON in prose
+// despite instructions, and a long multi-resource extraction can get cut off
+// by max_tokens before the JSON closes — this handles all three rather than
+// a single greedy regex, which breaks on any of them.
 export function extractResources(result) {
   const raw = result?.response ?? result?.choices?.[0]?.message?.content
   let parsed = null
@@ -120,12 +210,18 @@ export function extractResources(result) {
   if (raw && typeof raw === 'object') {
     parsed = raw
   } else if (typeof raw === 'string' && raw.trim()) {
-    const match = /\{[\s\S]*\}/.exec(raw)
-    if (match) {
-      try {
-        parsed = JSON.parse(match[0])
-      } catch {
-        return null
+    const start = raw.indexOf('{')
+    if (start !== -1) {
+      const end = findMatchingClose(raw, start)
+      if (end !== -1) {
+        try {
+          parsed = JSON.parse(raw.slice(start, end))
+        } catch {
+          parsed = repairTruncatedJson(raw.slice(start))
+        }
+      } else {
+        // No matching close before the text ran out — truncated response.
+        parsed = repairTruncatedJson(raw.slice(start))
       }
     }
   }
