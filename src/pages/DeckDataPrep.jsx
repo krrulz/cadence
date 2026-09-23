@@ -5,7 +5,6 @@ import Section from '../components/Section.jsx'
 import Modal from '../components/Modal.jsx'
 import { LabeledInput, LabeledTextarea, FormActions } from '../components/FormFields.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { auth } from '../firebase.js'
 import {
   getAllUsers,
   getAllRecords,
@@ -14,7 +13,7 @@ import {
   updateRecord,
   deleteRecord,
 } from '../lib/firestoreHelpers.js'
-import { extractPptxSlideText } from '../lib/pptxText.js'
+import { extractPptxResourceUpdates } from '../lib/pptxText.js'
 import { bestEmployeeMatch } from '../lib/nameMatch.js'
 import { applyMilestoneToGoal, CLIENT_DELIVERY_OBJECTIVE } from '../lib/goalLinks.js'
 
@@ -28,12 +27,14 @@ function currentMonthLabel() {
 
 // Admin tool that prepares the data behind the monthly Tribe Customers
 // SteerCo deck: (1) upload a resource-update PPTX, extract each person's
-// milestones via AI, review/correct them, and save as real Project Status
-// Update records (which also feed each employee's Client Delivery goal,
-// same as the self-service flow) — this is what the eventual "Squad
-// Milestones" slide will be generated from; (2) maintain the Action Plan
-// list by hand, since it doesn't come from the PPT. PPTX *generation* (the
-// actual "Generate & Download" button) is a follow-up phase.
+// milestones (deterministically, from the deck's own name/bullet table
+// layout — see src/lib/pptxText.js), review/correct them, and save as real
+// Project Status Update records (which also feed each employee's Client
+// Delivery goal, same as the self-service flow) — this is what the
+// eventual "Squad Milestones" slide will be generated from; (2) maintain
+// the Action Plan list by hand, since it doesn't come from the PPT. PPTX
+// *generation* (the actual "Generate & Download" button) is a follow-up
+// phase.
 export default function DeckDataPrep() {
   return (
     <Layout>
@@ -83,22 +84,10 @@ function UploadExtractSection() {
     setGroups(null)
     setExtracting(true)
     try {
-      const slides = await extractPptxSlideText(file)
-      if (slides.length === 0) throw new Error('No readable text found in that file.')
+      const resources = await extractPptxResourceUpdates(file)
+      if (resources.length === 0) throw new Error('No resource tables were found in that file.')
 
-      const idToken = await auth.currentUser.getIdToken()
-      const res = await fetch('/api/extract-project-updates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
-        body: JSON.stringify({ slidesText: slides.map((s) => s.text) }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        const detail = data.rawPreview ? `\n\nWhat the AI actually returned (for diagnosis):\n${data.rawPreview}` : ''
-        throw new Error((data.error || `Request failed (${res.status})`) + detail)
-      }
-
-      const built = data.resources.map((r, i) => {
+      const built = resources.map((r, i) => {
         const match = bestEmployeeMatch(r.name, employees)
         return {
           tempId: `g${i}`,
@@ -207,9 +196,9 @@ function UploadExtractSection() {
   return (
     <Section title="Upload monthly resource-update PPT">
       <p className="mb-3 -mt-1 text-sm text-ink-muted">
-        Upload the deck each resource filled in this month. I'll extract each person's updates with AI, then you can
-        review and correct everything below before it's saved as real Project Status Updates (which also feed each
-        employee's Client Delivery goal, same as when they log one themselves).
+        Upload the deck each resource filled in this month. I'll read each person's name and updates straight from
+        the deck's own tables, then you can review and correct everything below before it's saved as real Project
+        Status Updates (which also feed each employee's Client Delivery goal, same as when they log one themselves).
       </p>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -230,7 +219,7 @@ function UploadExtractSection() {
         {fileName && <span className="text-xs text-ink-faint">{fileName}</span>}
       </div>
 
-      {extracting && <p className="mt-3 text-sm text-ink-muted">Extracting and matching resources…</p>}
+      {extracting && <p className="mt-3 text-sm text-ink-muted">Reading and matching resources…</p>}
       {error && <p className="mt-3 whitespace-pre-wrap text-sm text-rose-400">{error}</p>}
       {savedMessage && <p className="mt-3 text-sm text-mint">✓ {savedMessage}</p>}
 

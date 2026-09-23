@@ -251,13 +251,11 @@ Read-only — prints two lists (completed, with skill count and last-submitted d
 
 ## 11. Deck Data Prep — Tribe Customers SteerCo deck (admin only, Phase 1)
 
-`/deck-data-prep` prepares the data behind the monthly Tribe Customers SteerCo PowerPoint: upload the deck each resource fills in that month, and it's extracted with AI into per-resource milestone entries for you to review and correct before saving as real Project Status Updates (`projectUpdates` — same collection and Client Delivery goal linking as the self-service feature on My Dashboard). The Action Plan list is maintained by hand in the same tab, since it isn't derived from the PPT.
+`/deck-data-prep` prepares the data behind the monthly Tribe Customers SteerCo PowerPoint: upload the deck each resource fills in that month, and it's read into per-resource milestone entries for you to review and correct before saving as real Project Status Updates (`projectUpdates` — same collection and Client Delivery goal linking as the self-service feature on My Dashboard). The Action Plan list is maintained by hand in the same tab, since it isn't derived from the PPT.
 
 **This is Phase 1** — upload → extract → review → save. Actually *generating* the branded SteerCo PPTX (matching the exact BNPPF/Expleo template fonts/colors/layout) is a follow-up phase, not built yet.
 
-**Setup**: reuses the same `CF_ACCOUNT_ID` / `CF_API_TOKEN` / `FIREBASE_PROJECT_ID` / `FIREBASE_SERVICE_ACCOUNT` env vars as §6 and §7 — nothing new to configure if those are already set.
-
-**How extraction works**: the uploaded `.pptx` is parsed client-side (it's just a zip of XML — [`src/lib/pptxText.js`](./src/lib/pptxText.js) pulls the visible text per slide, no upload of the raw file to any server). That text goes to [`api/extract-project-updates.js`](./api/extract-project-updates.js) (Workers AI, admin-only), which returns each resource's name and a set of `{label, description}` milestone entries. [`src/lib/nameMatch.js`](./src/lib/nameMatch.js) pre-matches each extracted name against the employee roster so the review table starts with a best guess — every match, and every extracted line, stays editable before you save anything.
+**How extraction works**: the uploaded `.pptx` is parsed entirely client-side (it's just a zip of XML — no upload of the raw file to any server, no AI call). The source decks lay each squad out as one or more tables per slide, with resource names across the header row and that person's bullets in the column below — [`src/lib/pptxText.js`](./src/lib/pptxText.js) reads that table structure directly to build each resource's exact update list (deterministic, not inferred), then splits each bullet into a `{label, description}` pair on its first colon (falling back to the first few words as the label). [`src/lib/nameMatch.js`](./src/lib/nameMatch.js) pre-matches each extracted name against the employee roster so the review table starts with a best guess — every match, and every extracted line, stays editable before you save anything.
 
 ## Data model (Firestore)
 
